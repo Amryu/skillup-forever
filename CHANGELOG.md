@@ -12,6 +12,13 @@ optional `### For addon authors` subsection after a version's player bullets.
 
 ## [Unreleased]
 
+## [1.12.1] - 2026-11-16
+
+<!-- forever-core-sync -->
+
+- Loads without ForeverCore, and says on screen what to do when ForeverCore is missing, turned off or out of date, in your client's language.
+- Ships with the same shared code as your other Forever addons, so they keep working together.
+
 ## [1.12.0] - 2026-11-16
 
 <!-- discord-image: docs/screenshots/route.png -->
