@@ -241,38 +241,120 @@ function ns.StepCost(recipeID, crafts)
 	return ns.Model.StepCost(netCost, nil, crafts)
 end
 
+-- A recipe's reagents for the planner's held pool: what buying each unit costs, and what using a held copy
+-- gives up. Only a reagent the bags or bank actually hold gets the second price: an unheld one is never read
+-- from the pool, and pricing it anyway would ask the client for item data a plan does not otherwise need. A
+-- recipe with nothing held therefore keeps nil, and with nothing held anywhere it costs no table and no read
+-- at all: the planner uses `reagents` for nothing else.
+---@param recipeID integer
+---@param reagents SkillUpReagent[]? Already read, when the caller has them.
+---@param held table<integer, integer>? The snapshot's held counts, entries only for what is held.
+---@return SkillUpPricedReagent[]?
+local function PricedReagents(recipeID, reagents, held)
+	if not held or next(held) == nil then
+		-- The bags and bank hold nothing: no recipe can draw from them, so not even a reagent list is read.
+		return nil
+	end
+	local list = reagents or (ns.Reagents and ns.Reagents(recipeID)) or {}
+	local pooled = false
+	for _, reagent in ipairs(list) do
+		if held[reagent.itemID] then
+			pooled = true
+			break
+		end
+	end
+	if not pooled then
+		return nil
+	end
+	local priced = {}
+	for _, reagent in ipairs(list) do
+		local itemID = reagent.itemID
+		priced[#priced + 1] = {
+			itemID = itemID,
+			quantity = reagent.quantity,
+			buy = ns.ObtainCost and ns.ObtainCost(itemID) or nil,
+			held = held[itemID] and ns.HeldCost and ns.HeldCost(itemID) or nil,
+		}
+	end
+	return priced
+end
+
+-- The reagents whose held count a snapshot has already read, keyed by the snapshot: a snapshot lives only for
+-- the plan made from it, so the map is weak.
+---@type table<SkillUpSnapshot, table<integer, true>>
+local countedBySnapshot = setmetatable({}, { __mode = "k" })
+
+-- Adds the held count of every reagent a snapshot has not counted yet, so two recipes using the same reagent
+-- ask the bags and bank once. Only a recipe the planner can use is counted: one it can neither craft nor train
+-- is never priced from the pool, so its reagents' counts are never read.
+---@param snapshot SkillUpSnapshot
+---@param reagents SkillUpReagent[]?
+---@return table<integer, integer> The snapshot's held counts, entries only for what is held.
+local function CountHeld(snapshot, reagents)
+	local counted = countedBySnapshot[snapshot]
+	if not counted then
+		counted = {}
+		countedBySnapshot[snapshot] = counted
+	end
+	local held = snapshot.held
+	if not held then
+		held = {}
+		snapshot.held = held
+	end
+	for _, reagent in ipairs(reagents or {}) do
+		local itemID = reagent.itemID
+		if not counted[itemID] then
+			counted[itemID] = true
+			-- A count of zero would be copied into every walk's pool for nothing.
+			local count = ns.Have and ns.Have(itemID) or 0
+			if count > 0 then
+				held[itemID] = count
+			end
+		end
+	end
+	return held
+end
+
 -- What the planner works from: the recipes this character knows, for any of its professions, from
 -- the bundled recipe data plus the learned record, so the profession needn't be open. `known` adds
 -- recipes the caller knows are learned. Skills here are effective (base + bonus), as the
--- thresholds are.
+-- thresholds are. `held` is what the bags and bank count of the reagents those recipes use; a
+-- training search counts its own candidates' before it prices them.
 ---@param profession SkillUpContext
 ---@param target number Base skill.
 ---@param known table<integer, boolean>?
 ---@return SkillUpSnapshot
 local function Snapshot(profession, target, known)
 	local recipes = {}
+	---@type SkillUpSnapshot
+	local snapshot = {
+		skill = profession.skill,
+		target = target + profession.modifier,
+		recipes = recipes,
+		-- Between two recipes that tie on cost and chance, the planner takes one whose product is a buff this
+		-- level can use (#357).
+		buffs = ns.UsableBuffs(UnitLevel("player") or 0),
+		held = {},
+	}
 	for _, recipeID in ipairs(RecipesOf(profession.skillLine)) do
 		local thresholds = not Skipped(recipeID) and ns.Model.Get(recipeID)
 		if thresholds and (known and known[recipeID] or ns.IsLearned(recipeID)) then
-			local reagentCost, _, netCost = RecipeCosts(recipeID)
+			local reagents = ns.Reagents and ns.Reagents(recipeID)
+			local held = CountHeld(snapshot, reagents)
+			local reagentCost, value, netCost = RecipeCosts(recipeID)
 			recipes[#recipes + 1] = {
 				recipeID = recipeID,
 				thresholds = thresholds,
 				netCost = netCost,
 				reagentCost = reagentCost,
+				reagents = PricedReagents(recipeID, reagents, held),
+				value = value and value.copper or nil,
 				preference = ns.PinPreference(recipeID),
 				skillUps = ns.RecipeSkillUps and ns.RecipeSkillUps(recipeID) or 1,
 			}
 		end
 	end
-	-- Between two recipes that tie on cost and chance, the planner takes one whose product is a buff this level
-	-- can use (#357).
-	return {
-		skill = profession.skill,
-		target = target + profession.modifier,
-		recipes = recipes,
-		buffs = ns.UsableBuffs(UnitLevel("player") or 0),
-	}
+	return snapshot
 end
 
 -- { fee, required base skill, minimum character level }: what a trainer was seen to charge, else the base
@@ -345,12 +427,18 @@ local function Trainable(profession, snapshot)
 		if training and t then
 			local taught = { math.max(t[1], training[2] + profession.modifier), t[2], t[3], t[4] }
 			if taught[1] <= snapshot.target and t[4] > snapshot.skill then
-				local reagentCost, _, netCost = RecipeCosts(recipeID)
+				-- Its reagents join the snapshot's pool before they are priced, so a candidate the bags can make
+				-- is weighed against what using those copies gives up.
+				local reagents = ns.Reagents and ns.Reagents(recipeID)
+				local held = CountHeld(snapshot, reagents)
+				local reagentCost, value, netCost = RecipeCosts(recipeID)
 				services[#services + 1] = {
 					recipeID = recipeID,
 					thresholds = taught,
 					netCost = netCost,
 					reagentCost = reagentCost,
+					reagents = PricedReagents(recipeID, reagents, held),
+					value = value and value.copper or nil,
 					preference = ns.PinPreference(recipeID),
 					fee = training[1],
 					skillUps = ns.RecipeSkillUps and ns.RecipeSkillUps(recipeID) or 1,
@@ -549,9 +637,11 @@ local MAX_SUB_DEPTH = 3
 ---@return SkillUpSubCraft[]
 ---@return {itemID: integer, count: number}[]
 ---@return {itemID: integer, count: number}[]
+---@return boolean held Whether a held copy, raw or intermediate, stood in for a reagent.
 local function Expand(recipeID, crafts, depth, making, bags)
 	local subcrafts, raw = {}, {}
 	local used = {}
+	local usedHeld = false
 	for _, reagent in ipairs((ns.Reagents and ns.Reagents(recipeID)) or {}) do
 		local need = reagent.quantity * crafts
 		local maker = depth < MAX_SUB_DEPTH
@@ -565,11 +655,15 @@ local function Expand(recipeID, crafts, depth, making, bags)
 				local held = math.min(bags[reagent.itemID], need)
 				bags[reagent.itemID] = bags[reagent.itemID] - held
 				need = need - held
+				if held > 0 then
+					usedHeld = true
+				end
 			end
 			if need > 0 then
 				local batches = math.ceil(need / maker.quantity)
 				making[reagent.itemID] = true
-				local childSubcrafts, childRaw, childUsed = Expand(maker.recipeID, batches, depth + 1, making, bags)
+				local childSubcrafts, childRaw, childUsed, childHeld =
+					Expand(maker.recipeID, batches, depth + 1, making, bags)
 				making[reagent.itemID] = nil
 				for _, sub in ipairs(childSubcrafts) do
 					subcrafts[#subcrafts + 1] = sub
@@ -586,6 +680,9 @@ local function Expand(recipeID, crafts, depth, making, bags)
 				for _, item in ipairs(childUsed) do
 					used[#used + 1] = item
 				end
+				if childHeld then
+					usedHeld = true
+				end
 			end
 		else
 			-- A raw reagent the bags hold is not bought or gathered; the rest is what the route still needs.
@@ -596,6 +693,7 @@ local function Expand(recipeID, crafts, depth, making, bags)
 				need = need - held
 				if held > 0 then
 					used[#used + 1] = { itemID = reagent.itemID, count = held }
+					usedHeld = true
 				end
 			end
 			if need > 0 then
@@ -603,7 +701,7 @@ local function Expand(recipeID, crafts, depth, making, bags)
 			end
 		end
 	end
-	return subcrafts, raw, used
+	return subcrafts, raw, used, usedHeld
 end
 
 -- Public, price-aware bill of materials for other addons: one raw entry per item, in first-seen order.
@@ -736,7 +834,7 @@ local function Finish(profession, target, route)
 	end
 	local crafts, bags = {}, {}
 	for index, segment in ipairs(route.segments) do
-		local subcrafts = Expand(segment.recipeID, segment.crafts, 0, {}, bags)
+		local subcrafts, _, _, usedHeld = Expand(segment.recipeID, segment.crafts, 0, {}, bags)
 		crafts[index] = {
 			recipeID = segment.recipeID,
 			from = segment.fromSkill - m,
@@ -747,6 +845,7 @@ local function Finish(profession, target, route)
 			color = ns.Model.Color(ns.Model.Get(segment.recipeID), segment.fromSkill),
 			station = ns.RecipeStation and ns.RecipeStation(segment.recipeID) or nil,
 			subcrafts = subcrafts,
+			held = usedHeld or nil,
 		}
 	end
 	local training = {}
@@ -820,7 +919,7 @@ end
 -- prices, recipes, fees or targets change; skill is part of the key. A profession keeps its last
 -- few targets' plans, so going back to a target already planned doesn't plan it again (#189).
 local PLAN_CACHE_SIZE = 8
----@type table<integer, { plans: table<string, SkillUpPlan>, order: string[] }>
+---@type table<integer, { plans: table<string, SkillUpPlan>, order: string[], bags: table<string, integer> }>
 local plans = {}
 
 -- The route each profession is following: the plan last handed out, the key it was planned for, and the bag
@@ -839,9 +938,11 @@ ns.WhenStale("replan", function()
 	committed = {}
 end)
 
--- A bag change never chooses a route's recipes, but it can take away what a step still needs. Bags move many
--- times a frame while looting, so the route being followed is checked when something next asks for it, once per
--- bag change however many asks follow it.
+-- A bag change can choose a route's recipes: a plan made before it priced the bags as they were. The plan cache
+-- is epoched rather than dropped, so nothing is replanned until something asks, and a plan made before the last
+-- bag change is never served as today's choice. The route being followed is kept if every step can still be
+-- walked (#621). Bags move many times a frame while looting, so that check runs once per bag change however
+-- many asks follow it.
 local bagEpoch = 0
 
 ns.WhenStale("bags", function()
@@ -983,6 +1084,20 @@ local function Rebuild(profession, target, plan, fresh)
 	return Finish(profession, target, route)
 end
 
+-- Drops one cached plan and its place in the per-profession order.
+---@param cache { plans: table<string, SkillUpPlan>, order: string[], bags: table<string, integer> }
+---@param key string
+local function Forget(cache, key)
+	cache.plans[key] = nil
+	cache.bags[key] = nil
+	for index, existing in ipairs(cache.order) do
+		if existing == key then
+			table.remove(cache.order, index)
+			return
+		end
+	end
+end
+
 -- The cheapest way to the target from the recipes this character knows, with whatever training
 -- pays for itself and the ranks it passes.
 ---@param profession SkillUpProfession
@@ -997,7 +1112,7 @@ function ns.PlanRoute(profession)
 		table.concat({ profession.skill, profession.modifier, profession.max, target, ns.CollectMode(), level }, ":")
 	local cache = plans[profession.skillLine]
 	if not cache then
-		cache = { plans = {}, order = {} }
+		cache = { plans = {}, order = {}, bags = {} }
 		plans[profession.skillLine] = cache
 	end
 	-- The route being followed is checked against the bags here, once per bag change: a route a step can no
@@ -1007,12 +1122,25 @@ function ns.PlanRoute(profession)
 	if kept and kept.bags ~= bagEpoch then
 		kept.bags = bagEpoch
 		if not Affordable(kept.plan) then
-			cache.plans[kept.key] = nil
+			Forget(cache, kept.key)
 			committed[profession.skillLine] = nil
 			kept = nil
 		end
 	end
+	-- A plan made before the last bag change is not today's choice: the bags may now favour another recipe. A
+	-- route the player is following is the exception (#621): while every step can still be walked it is kept, so
+	-- the bags cannot swap the recipes they are shopping for. A fresh plan is made when nothing is being followed.
+	---@type SkillUpPlan?
 	local cached = cache.plans[key]
+	if cached and cache.bags[key] ~= bagEpoch then
+		local followed = committed[profession.skillLine]
+		if followed and followed.key == key and followed.plan == cached then
+			cache.bags[key] = bagEpoch
+			cached.profession = profession
+			return cached
+		end
+		cached = nil
+	end
 	if cached then
 		cached.profession = profession
 		local entry = committed[profession.skillLine]
@@ -1036,11 +1164,12 @@ function ns.PlanRoute(profession)
 		plan = Rebuild(profession, target, kept.plan, plan)
 	end
 	Commit(profession.skillLine, key, plan)
+	Forget(cache, key)
 	cache.plans[key] = plan
+	cache.bags[key] = bagEpoch
 	cache.order[#cache.order + 1] = key
 	if #cache.order > PLAN_CACHE_SIZE then
-		local oldest = table.remove(cache.order, 1)
-		cache.plans[oldest] = nil
+		Forget(cache, table.remove(cache.order, 1))
 	end
 	return plan
 end
@@ -1055,11 +1184,18 @@ function ns.BestTraining(profession, known, offers)
 	if profession.capped then
 		return nil
 	end
+	-- The snapshot is made before the offers are priced, so they are weighed against the same bags and bank the
+	-- training search re-plans over.
+	local snapshot = Snapshot(profession, RouteTarget(profession), known)
 	local services = {}
 	for _, offer in ipairs(offers) do
 		local thresholds = ns.Model.Get(offer.recipeID)
 		if thresholds and not ns.IsLearned(offer.recipeID) and not Skipped(offer.recipeID) then
-			local reagentCost, _, netCost = RecipeCosts(offer.recipeID)
+			-- An offer's reagents join the snapshot's pool before they are priced, as a trainer's taught recipe's
+			-- do, so the bags weigh in on which offer is worth taking.
+			local reagents = ns.Reagents and ns.Reagents(offer.recipeID)
+			local held = CountHeld(snapshot, reagents)
+			local reagentCost, value, netCost = RecipeCosts(offer.recipeID)
 			services[#services + 1] = {
 				recipeID = offer.recipeID,
 				thresholds = {
@@ -1070,6 +1206,8 @@ function ns.BestTraining(profession, known, offers)
 				},
 				netCost = netCost,
 				reagentCost = reagentCost,
+				reagents = PricedReagents(offer.recipeID, reagents, held),
+				value = value and value.copper or nil,
 				preference = ns.PinPreference(offer.recipeID),
 				skillUps = ns.RecipeSkillUps and ns.RecipeSkillUps(offer.recipeID) or 1,
 				fee = offer.fee,
@@ -1079,7 +1217,7 @@ function ns.BestTraining(profession, known, offers)
 	table.sort(services, function(a, b)
 		return a.recipeID < b.recipeID
 	end)
-	local best = ns.Model.RecommendTraining(Snapshot(profession, RouteTarget(profession), known), services)
+	local best = ns.Model.RecommendTraining(snapshot, services)
 	return best and best.recipeID or nil
 end
 
