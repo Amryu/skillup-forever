@@ -12,6 +12,8 @@ optional `### For addon authors` subsection after a version's player bullets.
 
 ## [Unreleased]
 
+- **Training steps name the trainer who actually teaches the recipe.** A Leatherworking route at 175 sent players to a trainer whose rank cap covered the recipe but who would not offer it, so he would not talk to them. Steps now name a trainer who lists that recipe, and say so when none of your faction's trainers teach it. A recipe a trainer asks a character level for stays in the list with that level while the route waits for it. Thanks to cursebandit for the report (#722).
+
 ## [1.11.0] - 2026-11-16
 
 <!-- discord-image: docs/screenshots/route.png -->
