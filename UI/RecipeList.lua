@@ -9,6 +9,9 @@ local L = ns.L
 ---@type SkillUpRecipeList
 local recipeList
 
+---@type SkillUpRecipeList
+local customList
+
 ---@type FontString
 local measure
 
@@ -150,23 +153,16 @@ local SORT_KEYS = {
 		local chance = ns.Describe(recipeInfo, ctx).chance
 		return chance and -chance or math.huge
 	end,
+	profit = function(recipeInfo)
+		return ns.NetCost(recipeInfo.recipeID) or math.huge
+	end,
 	cost = function(recipeInfo, ctx)
 		return ns.Describe(recipeInfo, ctx).perSkillUp or math.huge
 	end,
 }
 
--- Forever's categories hold one or two recipes each, so sorting inside them changes
--- nothing. A sort instead flattens the list: learned recipes, then unlearned ones.
-local replacing = false
 -- One failure is said once, not on every redraw.
 local warned = false
--- The provider the client built, kept so Default can put it back, and the providers we built ourselves, so
--- neither is taken for the client's. Restoring the client's own provider is what lets Default work without
--- calling the crafting page's Init, which writes the recipe selection and schematic as ours (#350).
----@type SkillUpTreeProvider?
-local nativeProvider
----@type table<SkillUpTreeProvider, true>
-local builtProviders = setmetatable({}, { __mode = "k" })
 
 ---@param node SkillUpTreeNode
 ---@param learned SkillUpRecipeNodeData[]
@@ -201,6 +197,34 @@ local function MatchesSearch(name, search)
 	return strfind(strlower(name), strlower(search), 1, true) ~= nil
 end
 
+---@type table<integer, true>
+local pendingLevels = {}
+
+-- Read the output, not the scroll that teaches the recipe. Numeric searches have no name filter.
+---@param recipeID integer
+---@param minimum number
+---@param maximum number
+---@return boolean
+local function MatchesItemLevel(recipeID, minimum, maximum)
+	if minimum == 0 and maximum == 0 then
+		return true
+	end
+	local recipe = ns.RecipeData[recipeID]
+	local output = recipe and recipe.output
+	local level
+	if output then
+		local _, _, _, itemLevel = C_Item.GetItemInfo(output.itemID)
+		level = itemLevel
+		if not level then
+			pendingLevels[output.itemID] = true
+			C_Item.RequestLoadItemDataByID(output.itemID)
+		end
+	end
+	-- An active level range requires a known output level: uncached items and non-item outputs cannot
+	-- establish a match. ITEM_DATA_LOAD_RESULT refilters the list when the client supplies missing data.
+	return level ~= nil and level >= minimum and level <= maximum
+end
+
 -- The bundled recipes missing from the client's list, in the order ns.UnlearnedRecipes sorted them. A
 -- recipe the client does not list has no node data of its own, so its row gets our wrapper around it.
 ---@param seen table<integer, boolean>
@@ -209,8 +233,17 @@ end
 local function UnlearnedMissing(seen, ctx)
 	local missing = {}
 	local search = C_TradeSkillUI.GetRecipeItemNameFilter()
+	local minimum, maximum = 0, 0
+	if C_TradeSkillUI.GetRecipeItemLevelFilter then
+		local low, high = C_TradeSkillUI.GetRecipeItemLevelFilter()
+		minimum, maximum = low or 0, high or 0
+	end
 	for _, entry in ipairs(ns.UnlearnedRecipes(ctx)) do
-		if not seen[entry.recipeID] and MatchesSearch(entry.name, search) then
+		if
+			not seen[entry.recipeID]
+			and MatchesSearch(entry.name, search)
+			and MatchesItemLevel(entry.recipeID, minimum, maximum)
+		then
 			seen[entry.recipeID] = true
 			missing[#missing + 1] = { recipeInfo = UnlearnedInfo(entry) }
 		end
@@ -412,22 +445,19 @@ end
 
 ---@param scrollBox SkillUpRecipeScrollBox
 local function ApplyList(scrollBox)
-	if replacing then
-		return
-	end
+	pendingLevels = {}
 	local source = scrollBox:GetDataProvider()
 	if not (source and source.GetRootNode) then
 		return
 	end
-	-- A provider the client built replaces the one we kept; ours replacing itself does not.
-	if not builtProviders[source] then
-		nativeProvider = source
-	end
-	-- Rebuild from the client's own provider when ours is already installed, so a redraw never sorts or
-	-- copies our own rows.
-	local base = builtProviders[source] and nativeProvider or source
+	-- A linked or guild window lists someone else's recipes. Its rows select through the client's own list:
+	-- SkillUp's rows open recipes with C_TradeSkillUI.OpenRecipe, which switches to this character's profession.
+	local linked = C_TradeSkillUI.IsTradeSkillLinked() or C_TradeSkillUI.IsTradeSkillGuild()
 	local key = SORT_KEYS[ns.db.sortMode]
-	local ok, built = pcall(BuildProvider, base, key, ns.SkillContext())
+	local ok, built = true, nil
+	if not linked then
+		ok, built = pcall(BuildProvider, source, key, ns.SkillContext())
+	end
 	if not ok then
 		if key then
 			ns.SetSortMode("blizzard")
@@ -439,21 +469,20 @@ local function ApplyList(scrollBox)
 		return
 	end
 	if not built then
-		-- Default, with no unlearned recipes to add, brings the client's categories back. Its own provider
-		-- is restored in place: asking the crafting page to Init would write its recipe selection and
-		-- schematic from addon code, and the craft path reads them (#350).
-		if builtProviders[source] and nativeProvider then
-			replacing = true
-			scrollBox:SetDataProvider(nativeProvider, ScrollBoxConstants.RetainScrollPosition)
-			replacing = false
-		end
+		customList:Hide()
+		recipeList.ScrollBox:Show()
+		recipeList.ScrollBox:EnableMouse(true)
+		recipeList.ScrollBar:SetAlpha(1)
 		return
 	end
-	---@cast built SkillUpTreeProvider
-	builtProviders[built] = true
-	replacing = true
-	scrollBox:SetDataProvider(built, ScrollBoxConstants.RetainScrollPosition)
-	replacing = false
+	-- Only our view receives an addon-built provider. Blizzard reads its own view during selection,
+	-- footer refresh and close, so assigning there taints the gamepad binding group (#794).
+	customList.ScrollBox:SetDataProvider(built, ScrollBoxConstants.RetainScrollPosition)
+	-- Hidden rows must also leave SmartNavigation, not just disappear (#732).
+	recipeList.ScrollBox:Hide()
+	recipeList.ScrollBox:EnableMouse(false)
+	recipeList.ScrollBar:SetAlpha(0)
+	customList:Show()
 end
 
 -- Redraws the rows on screen from what they hold. A settings, price or profession change used to rebuild
@@ -464,7 +493,8 @@ local function Redecorate()
 	if not (recipeList and recipeList.ScrollBox and recipeList.ScrollBox.ForEachFrame) then
 		return
 	end
-	recipeList.ScrollBox:ForEachFrame(function(row, elementData)
+	local scrollBox = customList:IsShown() and customList.ScrollBox or recipeList.ScrollBox
+	scrollBox:ForEachFrame(function(row, elementData)
 		if elementData and elementData.GetData then
 			DecorateRow(row, elementData)
 		end
@@ -487,7 +517,7 @@ local function AddFilterMenu(owner, rootDescription)
 		return MenuResponse.Refresh
 	end)
 	rootDescription:CreateTitle(L["Sort by"])
-	for _, option in ipairs(ns.SORT_OPTIONS) do -- menu-scroll-ok: SORT_OPTIONS is five fixed sort modes
+	for _, option in ipairs(ns.SORT_OPTIONS) do -- menu-scroll-ok: SORT_OPTIONS is six fixed sort modes
 		rootDescription:CreateRadio(option[2], function(mode)
 			return ns.db.sortMode == mode
 		end, function(mode)
@@ -520,7 +550,88 @@ end
 function ns.AttachRecipeList()
 	local craftingPage = ProfessionsFrame.CraftingPage --[[@as SkillUpCraftingPage]]
 	recipeList = craftingPage.RecipeList
-	bindPreview = ns.AttachRecipePreview(craftingPage)
+	-- The native template supplies the game's row art and category layout on frames owned by SkillUp.
+	-- Its search and filter controls stay with Blizzard; their provider changes feed this separate view.
+	customList = CreateFrame("Frame", nil, recipeList, "ProfessionsRecipeListTemplate") --[[@as SkillUpRecipeList]]
+	customList:SetAllPoints(recipeList)
+	customList:SetFrameLevel(recipeList:GetFrameLevel() + 10)
+	customList.SearchBox:Hide()
+	customList.FilterDropdown:Hide()
+	customList.Background:SetAlpha(0)
+	customList.BackgroundNineSlice:Hide()
+	customList:Hide()
+	-- SmartNavigation must scroll through engine methods. Reading this owned ScrollBox's Lua view
+	-- from its native HandleScroll would taint the shared focus and footer (#732, #794).
+	local box = customList.ScrollBox
+	local viewport = CreateFrame("ScrollFrame", nil, box)
+	viewport:SetAllPoints(box)
+	box.ScrollTarget:SetParent(viewport)
+	local extent = CreateFrame("Frame", nil, viewport)
+	extent:SetWidth(1)
+	viewport:SetScrollChild(extent)
+	local syncing = false
+	local function SyncNavigationScroll()
+		if syncing then
+			return
+		end
+		syncing = true
+		extent:SetHeight(box:GetHeight() + box:GetDerivedScrollRange())
+		viewport:SetVerticalScroll(box:GetDerivedScrollOffset())
+		syncing = false
+	end
+	viewport:SetScript("OnVerticalScroll", function(_, offset)
+		if syncing then
+			return
+		end
+		local range = box:GetDerivedScrollRange()
+		box:SetScrollPercentage(range > 0 and offset / range or 0, true)
+	end)
+	box:RegisterCallback("OnScroll", SyncNavigationScroll, viewport)
+	box:RegisterCallback("OnLayout", SyncNavigationScroll, viewport)
+	bindPreview = ns.AttachRecipePreview(craftingPage, customList.ScrollBox)
+	ScrollUtil.AddInitializedFrameCallback(customList.ScrollBox, function(_, row, node)
+		local data = node:GetData()
+		local info = data.recipeInfo
+		if info then
+			local selected = craftingPage.SchematicForm:GetRecipeInfo()
+			row:SetSelected(selected ~= nil and info.recipeID == selected.recipeID)
+		end
+		DecorateRow(row, node)
+		-- The template's initializer runs first and sets a fresh OnClick on every init, so this wraps that
+		-- handler for the recipe shown now, never an earlier wrapper.
+		if info then
+			local nativeClick = row:GetScript("OnClick")
+			row:SetScript("OnClick", function(_, button)
+				if button == "LeftButton" and info.learned then
+					if IsModifiedClick() and nativeClick then
+						nativeClick(row, button)
+					else
+						ns.CloseRecipePreview()
+						ns.ShowRecipe(info.recipeID, true)
+					end
+				elseif button == "RightButton" and info.learned and Professions.InLocalCraftingMode() then
+					ForeverCore.ContextMenu(row, function(_, root)
+						local favorite = C_TradeSkillUI.IsRecipeFavorite(info.recipeID)
+						root:CreateButton(favorite and BATTLE_PET_UNFAVORITE or BATTLE_PET_FAVORITE, function()
+							C_TradeSkillUI.SetRecipeFavorite(info.recipeID, not favorite)
+						end)
+					end)
+				end
+			end)
+		end
+	end, ns)
+	ScrollUtil.AddReleasedFrameCallback(customList.ScrollBox, function(_, row)
+		bindPreview(row)
+	end, ns)
+	EventRegistry:RegisterCallback("Professions.RecipeSelected", function()
+		local selected = craftingPage.SchematicForm:GetRecipeInfo()
+		customList.ScrollBox:ForEachFrame(function(row, node)
+			local info = node:GetData().recipeInfo
+			if info then
+				row:SetSelected(selected ~= nil and info.recipeID == selected.recipeID)
+			end
+		end)
+	end, customList)
 	measure = recipeList:CreateFontString(nil, "OVERLAY", "GameFontHighlight_NoShadow")
 	measure:Hide()
 	-- No iterateExisting: it calls back as (frame, data), not (owner, frame, data),
@@ -532,6 +643,15 @@ function ns.AttachRecipeList()
 		ApplyList(scrollBox)
 	end, recipeList.ScrollBox)
 	EventRegistry:RegisterCallback("Professions.RecipeListOnEnter", ns.ShowRecipeTooltip, ns)
+	ns.WhenEvent("ITEM_DATA_LOAD_RESULT", function()
+		for itemID in pairs(pendingLevels) do
+			local _, _, _, level = C_Item.GetItemInfo(itemID)
+			if level then
+				pendingLevels[itemID] = nil
+				return "recipeFilter"
+			end
+		end
+	end)
 	ns.WhenEvent("INPUT_DEVICE_INTERFACE_TRANSITION" --[[@as WowEvent]], SyncFilterMenu)
 	SyncFilterMenu()
 	-- A row setting, a price or a profession changed: redraw the rows and re-sort in place. Never rebuild

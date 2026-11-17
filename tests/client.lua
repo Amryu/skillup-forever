@@ -205,6 +205,8 @@ local OPTIONAL_GLOBALS = {
 	Auctionator = true,
 	-- TradeSkillMaster: its public API table, present only when TSM is installed and enabled.
 	TSM_API = true,
+	AuctionDB = true,
+	NaowhForever = true,
 	-- TomTom: its addon table, present only when TomTom is installed and enabled.
 	TomTom = true,
 	-- Shortest Path Forever: its addon table, present only when that Forever addon is installed.
@@ -264,6 +266,8 @@ function Client.load(options)
 		-- [recipeID] = { info = { maxTrivialLevel, numSkillUps, learned, relativeDifficulty }, requirements = { ... } }:
 		-- what the client's own recipe read answers, empty for a recipe it says nothing about.
 		live = {},
+		recipeItemLevelMin = 0,
+		recipeItemLevelMax = 0,
 		craftable = 999, -- what C_TradeSkillUI.GetCraftableCount answers
 		auction = {}, -- [itemID] = copper, as Auctionator last saw it
 		auctionAge = 0, -- whole days
@@ -539,6 +543,19 @@ function Client.load(options)
 	function Methods:GetWidth()
 		return self.width or 100
 	end
+	function Methods:SetScrollChild(child)
+		self.scrollChild = child
+	end
+	function Methods:SetVerticalScroll(offset)
+		self.verticalScroll = offset
+	end
+	function Methods:GetDerivedScrollRange()
+		return self.derivedScrollRange or 0
+	end
+	function Methods:GetDerivedScrollOffset()
+		return self.derivedScrollOffset or 0
+	end
+
 	function Methods:GetHeight()
 		return self.height or 20
 	end
@@ -727,7 +744,20 @@ function Client.load(options)
 			for _, key in ipairs({ "Left", "Middle", "Right", "LeftActive", "MiddleActive", "RightActive" }) do
 				frame[key] = NewFrame(nil, frame)
 			end
+		elseif stock == "ProfessionsRecipeListTemplate" then
+			for _, key in ipairs({ "SearchBox", "FilterDropdown", "Background", "BackgroundNineSlice", "ScrollBar" }) do
+				frame[key] = NewFrame(nil, frame)
+			end
+			frame.ScrollBox = G.CreateFrame("Frame", nil, frame, "WowScrollBoxList")
 		elseif stock == "WowScrollBoxList" then
+			frame.ScrollTarget = NewFrame(nil, frame)
+			function frame:ForEachFrame(callback)
+				for _, row in ipairs(self.children) do
+					if row.elementData then
+						callback(row, row.elementData)
+					end
+				end
+			end
 			function frame:SetDataProvider(provider)
 				self.provider = provider
 			end
@@ -740,6 +770,7 @@ function Client.load(options)
 					frame.elementFactory(function(rowTemplate, initialize)
 						local row = NewFrame(nil, self)
 						row.template = rowTemplate
+						row.elementData = elementData
 						if initialize then
 							initialize(row, elementData)
 						end
@@ -1153,6 +1184,9 @@ function Client.load(options)
 		end,
 	}
 	G.C_TradeSkillUI = {
+		GetRecipeItemLevelFilter = function()
+			return c.recipeItemLevelMin, c.recipeItemLevelMax
+		end,
 		GetRecipeSchematic = function(recipeID)
 			local schematic = c.schematics[recipeID]
 			if not schematic then
@@ -1208,7 +1242,7 @@ function Client.load(options)
 	G.C_Item = {
 		GetItemInfo = function(id)
 			local item = c.items[id] or {}
-			return item.name, nil, nil, nil, nil, nil, nil, nil, nil, nil, item.sell
+			return item.name, nil, nil, item.level, nil, nil, nil, nil, nil, nil, item.sell
 		end,
 		GetItemNameByID = function(id)
 			return c.items[id] and c.items[id].name
@@ -1360,6 +1394,32 @@ function Client.load(options)
 					return c.auctionAutoscan
 				end,
 			},
+		}
+	end
+	c.ahdb, c.naowh = options.ahdb, options.naowh
+	c.ahdbListeners = {}
+	if options.ahdb then
+		G.AuctionDB = {
+			ViewHouse = function()
+				return "test house"
+			end,
+			LastPrice = function(_, itemID, house)
+				assert(house == "test house")
+				return c.ahdb[itemID]
+			end,
+			Listen = function(_, event, fn)
+				c.ahdbListeners[event] = fn
+			end,
+		}
+	end
+	if options.naowh then
+		G.NaowhForever = {
+			AuctionPrice = function(itemID)
+				local point = c.naowh[itemID]
+				if point then
+					return point[1], point[2]
+				end
+			end,
 		}
 	end
 	-- options.tsm = { [itemID] = copper }, what TSM's AuctionDB holds; a spec may change it through c.tsm.
@@ -1751,8 +1811,8 @@ function Client.load(options)
 		local attach = c.host.Attach
 		-- ForeverCore's own quest section joins the same column from v1.2.0, and it lays itself out through
 		-- Update rather than LayoutContents. c.tracker holds this addon's own sections, which the specs drive.
-		function c.host.Attach(module, show)
-			attach(module, show)
+		function c.host.Attach(module, show, contract)
+			attach(module, show, contract)
 			local name = module:GetName()
 			local own = type(name) ~= "string" or not name:find("^ForeverCore")
 			if own and not G.tContains(c.tracker, module) and c.host.IsAttached(module) then

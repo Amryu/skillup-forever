@@ -77,7 +77,7 @@
 ---@field NetCost fun(recipeID: integer): number?
 ---@field InitPrices fun()
 ---@field AttachRecipeList fun()
----@field AttachRecipePreview fun(page: SkillUpCraftingPage): fun(row: SkillUpRecipeRow, data?: SkillUpRecipeNodeData)
+---@field AttachRecipePreview fun(page: SkillUpCraftingPage, extraScrollBox?: SkillUpRecipeScrollBox): fun(row: SkillUpRecipeRow, data?: SkillUpRecipeNodeData)
 ---@field IsRecipePreviewShown fun(): boolean
 ---@field CloseRecipePreview fun()
 ---@field RouteProfessions fun(): table<integer, SkillUpProfession>
@@ -121,6 +121,7 @@
 ---@field CreateList fun(parent: Frame): SkillUpList
 ---@field NextCraft fun(plan: SkillUpPlan): SkillUpCraft
 ---@field OpenSkillLine fun(): integer?
+---@field OpenRoute fun(skillLine?: integer): boolean
 ---@field ShowRecipe fun(recipeID: integer, anyProfession?: boolean)
 ---@field AttachRoute fun()
 ---@field AttachSupply fun()
@@ -152,6 +153,10 @@
 ---@field workingOvertimeRank number
 ---@field OpenSettings fun()
 ---@field HasAuctionator fun(): boolean
+---@field HasAHDB fun(): boolean
+---@field HasNaowhForever fun(): boolean
+---@field AuctionProvider fun(): "auctionator"|"tsm"|"ahdb"|"naowh"|nil
+---@field AuctionPrice fun(itemID: integer): SkillUpPrice?
 ---@field HasTradeSkillMaster fun(): boolean
 ---@field AcquisitionPayments fun(acquisitions: SkillUpSelectedAcquisition[]): string
 ---@field WithItemNames fun(items: SkillUpShoppingItem[], callback: fun())
@@ -287,12 +292,12 @@
 ---@field recipeTooltip 'window'|'cursor'|'row'
 ---@field rowCost 'skillup'|'craft'|'off'
 ---@field showCost boolean
----@field priceSource 'auctionator'|'tsm'
+---@field priceSource 'auctionator'|'tsm'|'ahdb'|'naowh'
 ---@field craftValue 'none'|'vendor'|'auction'|'sale'
 ---@field valueGathered boolean
 ---@field auctionOnly boolean
 ---@field restockCost number Copper for one trip to buy more after a shortfall; 0 counts no trip.
----@field sortMode 'blizzard'|'skill'|'newest'|'chance'|'cost'
+---@field sortMode 'blizzard'|'skill'|'newest'|'chance'|'cost'|'profit'
 ---@field unlearnedSortMode 'skill'|'newest'
 ---@field showTrainer boolean
 ---@field showProfessionTabs boolean
@@ -391,6 +396,7 @@ SkillUpForeverDB = nil
 ---@field held? number What using one held unit gives up.
 
 ---@class SkillUpCandidate
+---@field gatherableUnknown? boolean
 ---@field recipeID integer
 ---@field thresholds number[]
 ---@field netCost? number
@@ -546,15 +552,16 @@ SkillUpForeverDB = nil
 ---@field count number
 
 -- What a writer or a game event says changed, and the caches and views Core/Changes.lua keeps fresh.
----@alias SkillUpChange 'preview'|'supply'|'recipeEvidence'|'sourceEvidence'|'recipes'|'window'|'skill'|'talents'|'professions'|'prices'|'bags'|'items'|'trackerNames'|'names'|'level'|'zone'|'merchant'|'fees'|'sources'|'target'|'tracking'|'settings'|'replan'
+---@alias SkillUpChange 'recipeFilter'|'preview'|'supply'|'recipeEvidence'|'sourceEvidence'|'recipes'|'window'|'skill'|'talents'|'professions'|'prices'|'bags'|'items'|'trackerNames'|'names'|'level'|'zone'|'merchant'|'fees'|'sources'|'target'|'tracking'|'settings'|'replan'
 ---@alias SkillUpStale 'recipeEvidence'|'sourceEvidence'|'schematics'|'prices'|'plans'|'replan'|'bags'|'trackedNeeds'|'tooltipRoute'|'tooltipRouteTools'|'api'|'route'|'recipeList'|'tracker'|'trainer'|'routeTab'|'pages'|'supplyPage'|'gear'|'buffs'|'tooltipCache'|'tooltip'|'auctionSearch'|'detailsBar'|'recipePreview'|'shoppingList'
----@alias SkillUpPriceSource 'vendor'|'auctionator'|'tsm'|'gather'|'auction'
+---@alias SkillUpPriceSource 'vendor'|'auctionator'|'tsm'|'ahdb'|'naowh'|'gather'|'auction'
 ---@alias SkillUpCollectMode 'gather'|'auction'
 ---@alias SkillUpShoppingSource 'gather'|'vendor'|'auction'|'unknown'
 ---@class SkillUpPrice
 ---@field copper number
 ---@field source SkillUpPriceSource
----@field days? number Auctionator ages only: whole days since the newest observation.
+---@field sale? number What a free gathered reagent would sell for.
+---@field days? number Whole days since the newest observation.
 ---@field ageUnavailable? boolean Auctionator age API unavailable or failed, last-buyout prices only.
 ---@field profession? string Gathered reagents only: the profession that yields it.
 ---@field loot? boolean A reagent creatures drop, which any character can loot: no profession needed.

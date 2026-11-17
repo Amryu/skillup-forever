@@ -3,6 +3,16 @@
 -- stay as the client built them, favourites included, the bundle's unlearned recipes follow under a
 -- divider, and one the client already lists is not added twice. The added row shows its source and skill
 -- while the recipe preview owns its click.
+local Client = dofile("tests/client.lua")
+local client = Client.load({
+	boot = false,
+	data = {
+		RecipeData = {
+			[20] = { skillLine = 165, reagents = {}, output = { itemID = 100, quantity = 1 } },
+			[30] = { skillLine = 165, reagents = {}, output = { itemID = 200, quantity = 1 } },
+		},
+	},
+})
 local function noop() end
 
 local function Font()
@@ -107,9 +117,11 @@ function frame:SetWidth(width)
 end
 
 local decorate
+local itemDataArrived
 local previewRows = {}
 local ctx = { skillLine = 165, skill = 50, base = 45, modifier = 5 }
 local ns = {
+	RecipeData = client.ns.RecipeData,
 	L = setmetatable({}, {
 		__index = function(_, key)
 			return key
@@ -164,7 +176,11 @@ local ns = {
 		return { GetRGB = noop }
 	end,
 	WhenStale = noop,
-	WhenEvent = noop,
+	WhenEvent = function(event, handler)
+		if event == "ITEM_DATA_LOAD_RESULT" then
+			itemDataArrived = handler
+		end
+	end,
 	GamepadUI = function()
 		return false
 	end,
@@ -189,7 +205,19 @@ local ns = {
 	end,
 }
 
+local custom, widget = dofile("tests/recipe_list_view.lua")(box)
+recipeList.ScrollBar = widget
+recipeList.GetFrameLevel = function()
+	return 1
+end
+local function ActiveProvider()
+	return custom:IsShown() and custom.ScrollBox:GetDataProvider() or box:GetDataProvider()
+end
 local env = setmetatable({
+	C_Item = client.G.C_Item,
+	CreateFrame = function()
+		return custom
+	end,
 	ProfessionsFrame = frame,
 	Professions = {
 		GetHighestLearnedRecipe = function(info)
@@ -197,9 +225,16 @@ local env = setmetatable({
 		end,
 	},
 	C_TradeSkillUI = {
+		IsTradeSkillLinked = function()
+			return false
+		end,
+		IsTradeSkillGuild = function()
+			return false
+		end,
 		GetCraftableCount = function()
 			return 0
 		end,
+		GetRecipeItemLevelFilter = client.G.C_TradeSkillUI.GetRecipeItemLevelFilter,
 		GetRecipeItemNameFilter = function()
 			return searchText
 		end,
@@ -219,6 +254,7 @@ local env = setmetatable({
 		return false
 	end,
 	ScrollUtil = {
+		AddReleasedFrameCallback = noop,
 		AddInitializedFrameCallback = function(_, fn)
 			decorate = fn
 		end,
@@ -260,8 +296,8 @@ assert(provider == input and replacements == 1, "the setting off leaves the clie
 ns.db.showUnlearned = true
 replacements = 0
 box:SetDataProvider(input)
-assert(provider ~= input and replacements == 2, "the setting on installs the addon's provider once")
-local root = provider:GetRootNode()
+assert(ActiveProvider() ~= input and replacements == 1, "the setting on installs the addon's provider once")
+local root = ActiveProvider():GetRootNode()
 local nodes = root:GetNodes()
 assert(#nodes == 5, "two categories, a divider and two unlearned recipes")
 assert(nodes[1]:GetData().categoryInfo.name == "Favourites", "the favourites category is kept")
@@ -298,7 +334,7 @@ ns.UnlearnedRecipes = function()
 	}
 end
 box:SetDataProvider(withUnlearned)
-nodes = provider:GetRootNode():GetNodes()
+nodes = ActiveProvider():GetRootNode():GetNodes()
 assert(nodes[1]:GetData().isDivider, "native and bundled unlearned rows share the sorted group")
 assert(nodes[2]:GetData().recipeInfo.recipeID == 20, "the native unlearned recipe appears once in skill order")
 assert(#nodes == 3 and nodes[3]:GetData().recipeInfo.recipeID == 30, "only the missing recipe is added")
@@ -309,7 +345,7 @@ assert(#nodes == 3 and nodes[3]:GetData().recipeInfo.recipeID == 30, "only the m
 searchText = "RECIPE"
 provider, replacements = nil, 0
 box:SetDataProvider(input)
-nodes = provider:GetRootNode():GetNodes()
+nodes = ActiveProvider():GetRootNode():GetNodes()
 assert(#nodes == 4, "two categories, a divider and only the matching unlearned recipe")
 assert(nodes[4]:GetData().recipeInfo.recipeID == 30, "the added recipe whose name matches stays")
 searchText = "missing"
@@ -319,9 +355,41 @@ assert(provider == input, "no matching added recipe leaves the client's provider
 searchText = ""
 provider, replacements = nil, 0
 box:SetDataProvider(input)
-nodes = provider:GetRootNode():GetNodes()
+nodes = ActiveProvider():GetRootNode():GetNodes()
 assert(#nodes == 5, "clearing the search brings both added recipes back")
 searchText = nil
+
+-- Bounds are the client's parsed search state: N, ~N (+/-2), and N-M.
+client.items[100] = { name = "Output A", level = 60 }
+client.items[200] = { name = "Output B", level = 52 }
+local function CheckLevels(low, high, expected)
+	client.recipeItemLevelMin, client.recipeItemLevelMax = low, high
+	provider, replacements = nil, 0
+	box:SetDataProvider(input)
+	local ids = {}
+	for _, node in ipairs(ActiveProvider():GetRootNode():GetNodes()) do
+		local info = node:GetData().recipeInfo
+		if info then
+			ids[#ids + 1] = info.recipeID
+		end
+	end
+	assert(table.concat(ids, ",") == expected, "numeric bounds " .. low .. "-" .. high)
+end
+CheckLevels(60, 60, "20")
+CheckLevels(70, 70, "")
+CheckLevels(58, 62, "20")
+CheckLevels(50, 60, "20,30")
+client.items[100].level = nil
+CheckLevels(60, 60, "")
+assert(client.requested[100], "an uncached output requests its client data")
+assert(itemDataArrived() == nil, "unrelated item data does not rebuild the list")
+client.items[100].level = 60
+assert(itemDataArrived() == "recipeFilter", "the awaited level invalidates the recipe filter")
+CheckLevels(60, 60, "20")
+client.ns.RecipeData[20].output = false
+CheckLevels(60, 60, "")
+CheckLevels(0, 0, "20,30")
+assert(itemDataArrived() == nil, "clearing the filter stops waiting on item levels")
 
 -- Legacy wide-list settings no longer resize the shared host or native list.
 ns.db.wideRecipeList = true

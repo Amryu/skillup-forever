@@ -202,7 +202,18 @@ local function Description()
 	return description
 end
 
+local custom, widget = dofile("tests/recipe_list_view.lua")(box)
+recipeList.ScrollBar = widget
+recipeList.GetFrameLevel = function()
+	return 1
+end
+local function ActiveProvider()
+	return custom:IsShown() and custom.ScrollBox:GetDataProvider() or box:GetDataProvider()
+end
 local env = setmetatable({
+	CreateFrame = function()
+		return custom
+	end,
 	ProfessionsFrame = frame,
 	Professions = {
 		GetHighestLearnedRecipe = function(info)
@@ -210,6 +221,12 @@ local env = setmetatable({
 		end,
 	},
 	C_TradeSkillUI = {
+		IsTradeSkillLinked = function()
+			return false
+		end,
+		IsTradeSkillGuild = function()
+			return false
+		end,
 		GetCraftableCount = function()
 			return 0
 		end,
@@ -228,7 +245,7 @@ local env = setmetatable({
 	InCombatLockdown = function()
 		return false
 	end,
-	ScrollUtil = { AddInitializedFrameCallback = noop },
+	ScrollUtil = { AddInitializedFrameCallback = noop, AddReleasedFrameCallback = noop },
 	EventRegistry = { RegisterCallback = noop },
 	Menu = {
 		ModifyMenu = function(_, generator)
@@ -289,7 +306,7 @@ local input = Provider({
 })
 
 local function Nodes()
-	return provider:GetRootNode():GetNodes()
+	return ActiveProvider():GetRootNode():GetNodes()
 end
 
 -- Off, the client's provider stands as it did before the filter existed.
@@ -300,7 +317,7 @@ assert(provider == input and replacements == 1, "the filter off leaves the clien
 ns.db.buffsOnly = true
 replacements = 0
 box:SetDataProvider(input)
-assert(provider ~= input, "the filter on installs the addon's list")
+assert(ActiveProvider() ~= input, "the filter on installs the addon's list")
 local nodes = Nodes()
 assert(#nodes == 1, "only the elixir is left")
 assert(nodes[1]:GetData().recipeInfo.recipeID == 1, "and it is the elixir")
@@ -373,7 +390,7 @@ playerLevel = 5
 replacements = 0
 box:SetDataProvider(input)
 nodes = Nodes()
-assert(provider ~= input, "the empty match still installs the addon's list")
+assert(ActiveProvider() ~= input, "the empty match still installs the addon's list")
 assert(#nodes == 0, "and that list has no rows")
 
 -- The Filter menu's checkbox reads the setting and toggles it.

@@ -4,6 +4,9 @@ local _, ns = ...
 
 ns.Credits = {
 	players = {
+		{ name = "messajahswe", what = "Gathered materials have a sale value by default" },
+		{ name = "davef1n", what = "Sort recipes by profit regardless of skill" },
+		{ name = "user_bvgv4fnauhmhf9i7", what = "AHDB supplies auction prices" },
 		{ name = "puschie286", what = "Preview unlearned recipes in the crafting pane" },
 		{ name = "Belth", what = "Routes prefer materials already in the bags" },
 		{ name = "yavinn", what = "SkillUp pages stay visible with ClassicUI Forever" },
@@ -24,9 +27,10 @@ ns.Credits = {
 		{ name = "nookie909", what = "A route you are shopping for stays put after buying its reagents" },
 		{ name = "vladdoubrov", what = "Held sub-craft reagents are used from the bags before crafting more" },
 		{ name = "_spada", what = "Asked for completed-sale values when planning profession levels" },
-		{ name = "kopuliak", what = "Reported that search left bundled unlearned recipes unfiltered" },
+		{ name = "kopuliak", what = "Item-level searches filter bundled unlearned recipes" },
 		{ name = "SanyaBane", what = "Recipe tooltip keeps its skill bar when another tooltip clears (code)" },
 		{ name = "Rambomst", what = "Fixed progress-bar fill masking and Auctionator prices after reload" },
+		{ name = "bromidious", what = "Reported overlapping Supply controls and profession tabs staying visible" },
 		{ name = "bromidious", what = "Reported route progress bars overflowing their track" },
 		{ name = "fusionley", what = "Reported Auctionator lists coming back after being deleted" },
 		{ name = "bromidious", what = "Reported the progress-bar overlap fixed in #656" },

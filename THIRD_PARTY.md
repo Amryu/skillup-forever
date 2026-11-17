@@ -43,6 +43,9 @@ Credit for the reports and requests behind the addon.
 
 | Who | What | Notes |
 |---|---|---|
+| messajahswe | Gathered materials have a sale value by default | CurseForge; comment 8733694; #780 |
+| davef1n | Sort recipes by profit regardless of skill | CurseForge; comment 8735009; #781 |
+| user_bvgv4fnauhmhf9i7 | AHDB supplies auction prices | CurseForge; comment 8730894; #761 |
 | [puschie286](https://github.com/puschie286) | Preview unlearned recipes in the crafting pane | GitHub; PR #729 |
 | Belth | Routes prefer materials already in the bags | CurseForge; #744 |
 | yavinn | SkillUp pages stay visible with ClassicUI Forever | CurseForge; thread 8722440; #734 |
@@ -63,9 +66,10 @@ Credit for the reports and requests behind the addon.
 | nookie909 | A route you are shopping for stays put after buying its reagents | CurseForge; #621; thread 8689912 |
 | [vladdoubrov](https://github.com/vladdoubrov) | Held sub-craft reagents are used from the bags before crafting more (#667) | GitHub; #667 |
 | _spada | Asked for completed-sale values when planning profession levels (#478) | Discord |
-| kopuliak | Reported that search left bundled unlearned recipes unfiltered (#662) | CurseForge; thread 8697280 |
+| kopuliak | Item-level searches filter bundled unlearned recipes | CurseForge; #662, thread 8697280 |
 | [SanyaBane](https://github.com/SanyaBane) | Recipe tooltip keeps its skill bar when another tooltip clears (code) | GitHub; #649, PR #649 |
 | [Rambomst](https://github.com/Rambomst) | Fixed progress-bar fill masking and Auctionator prices after reload (#655, #656) | |
+| bromidious | Reported overlapping Supply controls and profession tabs staying visible (#787) | Discord; #787 |
 | bromidious | Reported route progress bars overflowing their track (#665) | Discord; #665 |
 | fusionley | Reported Auctionator lists coming back after being deleted (#714) | CurseForge; thread 8710486 |
 | bromidious | Reported the progress-bar overlap fixed in #656 | Discord; #656 |
