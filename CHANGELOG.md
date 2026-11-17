@@ -12,6 +12,9 @@ optional `### For addon authors` subsection after a version's player bullets.
 
 ## [Unreleased]
 
+- **Closing Professions keeps gamepad controls working.** Sorted and unlearned recipes use their own list, leaving the game's recipe provider and footer bindings intact (#794).
+- **Tracked professions have one visibility switch.** Hiding the reagent section uses the same setting as Show tracked professions. Section and profession menus include Open and keep their tracker options together (#771).
+
 ## [1.14.0] - 2026-11-17
 
 <!-- forever-core-sync -->
