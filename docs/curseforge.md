@@ -6,10 +6,10 @@ Free, with nothing locked behind it. If it saves you time, you can [sponsor me o
 
 **Known limitations**
 
-- Recipe colours come from the game, but a recipe you have not seen yet uses bundled thresholds that can be slightly off.
-- Trainer fees, requirements and drop chances come from Classic databases, as the game lists none until you visit.
-- Gathering nodes and corpses have no colour in the game, so theirs is an estimate, on English clients only.
-- Prices need an auction scan or a price addon, and a recipe with an unpriced reagent stays out of the route.
+- Recipe colours come from the game. A recipe your character has not learned or been shown in the Professions window uses bundled colour thresholds, which can be slightly off.
+- The game only tells the addon a trainer's fees once you open that trainer, so until then they come from bundled data, and the real fee replaces it after your visit. Drop chances are not in the game at all and also come from bundled data.
+- The game gives no colour for herb and ore nodes or skinnable corpses, so the skill line the addon adds to their tooltips is an estimate from bundled data. Herb and ore tooltips only work on English clients; corpses work on every client.
+- Prices come from an auction house scan or a price addon such as Auctionator or TSM. A recipe with a reagent that has no price and cannot be bought from a vendor or gathered stays out of the route.
 
 ![Leatherworking levelling from 48 to 60](https://raw.githubusercontent.com/cjber/skillup-forever/main/docs/screenshots/demo.gif)
 
