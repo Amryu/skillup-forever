@@ -12,6 +12,11 @@ optional `### For addon authors` subsection after a version's player bullets.
 
 ## [Unreleased]
 
+- **Gathered materials have a sale value by default.** New installs price gathered and looted reagents at what selling them would bring. An existing choice to count them as free stays, and its cost line shows the sale value when known. Thanks to messajahswe on CurseForge for the report (#780).
+- **Sort every learned recipe by craft profit.** Highest craft profit orders by net value per craft, including grey recipes, with unknown values last. Thanks to davef1n on CurseForge for the idea (#781).
+- **AHDB can supply auction prices.** Choose AHDB under Prices, with other installed price addons filling gaps and tooltips showing the observation's age. Thanks to user_bvgv4fnauhmhf9i7 on CurseForge for the idea (#761).
+- **Auction data can price a route before your first auction house visit.** SkillUp reads Naowh Forever's scans and nightly auction snapshot when installed, keeps its age and leaves missing prices unknown (#783, #561).
+
 ## [1.14.0] - 2026-11-17
 
 <!-- forever-core-sync -->
