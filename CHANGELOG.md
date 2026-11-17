@@ -12,6 +12,8 @@ optional `### For addon authors` subsection after a version's player bullets.
 
 ## [Unreleased]
 
+- **Item-level searches filter unlearned recipes too.** Exact levels, approximate levels and ranges now filter the bundled recipes by their output item level, thanks to kopuliak for the report (#662).
+
 ## [1.14.0] - 2026-11-17
 
 <!-- forever-core-sync -->
