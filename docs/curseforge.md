@@ -6,10 +6,10 @@ Free, with nothing locked behind it. If it saves you time, you can [sponsor me o
 
 **Known limitations**
 
-- Recipes you have not learned or been shown use bundled colour thresholds, which can be slightly off.
-- Trainer fees and drop chances come from bundled data, as the game shows fees only once you visit the trainer.
-- Herb, ore and skinning tooltips show an estimate, as the game gives no colour. Herb and ore work on English clients only.
-- Prices need an auction scan or Auctionator or TSM. A recipe with an unpriced reagent you cannot buy or gather stays out of the route.
+- Recipes you have not learned or seen use bundled colour thresholds, which can be slightly off.
+- Trainer fees and drop chances come from bundled data, as the game shows fees only at the trainer.
+- Herb, ore and skinning tooltips are estimates, as the game gives no colour. Herb and ore work on English clients only.
+- Prices need an auction scan, Auctionator or TSM. A recipe with an unpriced reagent you cannot buy or gather stays out of the route.
 
 ![Leatherworking levelling from 48 to 60](https://raw.githubusercontent.com/cjber/skillup-forever/main/docs/screenshots/demo.gif)
 
