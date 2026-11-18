@@ -300,6 +300,7 @@ equal(ns.AuctionatorAutoscan(), nil, "an unread option says nothing")
 c.auctionAutoscan = false
 equal(ns.AuctionatorAutoscan(), false, "the scan-on-open option reads as off")
 equal(c.shoppingLists["SkillUp: Tester-Realm: First Aid"], nil, "gather mode writes no Auctionator list")
+equal(ns.KeptAuctionList(FIRST_AID, "First Aid"), nil, "and keeps none to name")
 local personalList = { "Personal supplies" }
 c.shoppingLists["SkillUp: First Aid"] = personalList
 c.shoppingLists["SkillUp: Other-Realm: First Aid"] = personalList
@@ -311,6 +312,14 @@ c.player.name = "Tester"
 ns.SetCollectMode("auction")
 local list = c.shoppingLists["SkillUp: Tester-Realm: First Aid"]
 equal(type(list), "table", "buying keeps an Auctionator list")
+equal(
+	ns.KeptAuctionList(FIRST_AID, "First Aid"),
+	"SkillUp: Tester-Realm: First Aid",
+	"the kept list is the one written"
+)
+ns.db.trackedProfessions[FIRST_AID] = false
+equal(ns.KeptAuctionList(FIRST_AID, "First Aid"), nil, "an untracked route keeps no list (#860)")
+ns.db.trackedProfessions[FIRST_AID] = true
 equal(c.shoppingLists["SkillUp: First Aid"], personalList, "the old generic list remains untouched")
 equal(c.shoppingLists["SkillUp: Other-Realm: First Aid"], personalList, "another character's list remains untouched")
 local realm = c.player.realm
@@ -325,6 +334,7 @@ c.ns.db.auctionSearch = false
 c.bags[SILK] = 1
 c.Fire("BAG_UPDATE_DELAYED")
 equal(c.shoppingLists["SkillUp: Tester-Realm: First Aid"], list, "disabled automatic search does not rewrite the list")
+equal(ns.KeptAuctionList(FIRST_AID, "First Aid"), nil, "and the list it no longer keeps is not named")
 c.ns.db.auctionSearch = true
 c.bags[SILK] = Needed()
 c.Fire("BAG_UPDATE_DELAYED")

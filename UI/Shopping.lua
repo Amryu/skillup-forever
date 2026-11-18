@@ -300,10 +300,29 @@ local function SyncList(name, missing, signature)
 	end)
 end
 
+-- Whether SkillUp keeps Auctionator lists at all: Auctionator loaded, Buy reagents on (gather mode buys nothing)
+-- and the auction search setting on.
+---@return boolean
+local function KeepsAuctionLists()
+	return ns.HasAuctionator() and ns.CollectMode() == "auction" and ns.db.auctionSearch ~= false
+end
+
+-- The Auctionator list SkillUp keeps for a profession's route, or nil when it keeps none: SyncAuctionator writes
+-- one only for a tracked route, so a page naming the list asks here rather than for the list's name.
+---@param skillLine integer?
+---@param profession string
+---@return string?
+function ns.KeptAuctionList(skillLine, profession)
+	if not (KeepsAuctionLists() and ns.IsTracked(skillLine)) then
+		return nil
+	end
+	return ns.AuctionListName(profession)
+end
+
 -- Keep every tracked route's Auctionator list up to date with what it still buys, empties one it no longer needs,
--- and leaves a list Auctionator already holds alone. Gather mode buys nothing, so it is left as it is.
+-- and leaves a list Auctionator already holds alone.
 local function SyncAuctionator()
-	if not ns.HasAuctionator() or ns.CollectMode() ~= "auction" or ns.db.auctionSearch == false then
+	if not KeepsAuctionLists() then
 		return
 	end
 	for _, entry in ipairs(ns.TrackedNeeds()) do
