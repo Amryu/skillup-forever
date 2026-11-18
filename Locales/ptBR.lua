@@ -486,7 +486,6 @@ L["On (the default), a reagent you could gather, fish or loot from creatures is 
 	"Ativado (padrão): um reagente que você poderia coletar, pescar ou saquear de criaturas é comprado de um vendedor ou da casa de leilões. Desativado: obtê-lo você mesmo custa o que ele venderia."
 L["Shift + wheel, or drag, scrolls the timeline sideways."] =
 	"Shift + roda, ou arrastar, rola a linha do tempo para os lados."
-L["SkillUp's list"] = "Lista do SkillUp"
 L["Timeline"] = "Linha do tempo"
 L["Turning Buy reagents on writes an Auctionator list with every auction reagent still missing."] =
 	"Ativar Comprar reagentes grava uma lista do Auctionator com todos os reagentes de leilão ainda faltando."

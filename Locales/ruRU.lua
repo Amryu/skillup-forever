@@ -515,7 +515,6 @@ L["On (the default), a reagent you could gather, fish or loot from creatures is 
 	"Вкл. (по умолчанию): реагент, который можно собрать, выловить или добыть с существ, покупается у торговца или на аукционе. Выкл.: добыть его самостоятельно стоит столько, за сколько его можно продать."
 L["Shift + wheel, or drag, scrolls the timeline sideways."] =
 	"Shift + колесо мыши или перетаскивание прокручивает временную шкалу вбок."
-L["SkillUp's list"] = "Список SkillUp"
 L["Timeline"] = "Временная шкала"
 L["Turning Buy reagents on writes an Auctionator list with every auction reagent still missing."] =
 	"Если включить «Покупать реагенты», будет записан список Auctionator со всеми недостающими аукционными реагентами."

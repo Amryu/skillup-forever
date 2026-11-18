@@ -480,7 +480,6 @@ L["On (the default), a reagent you could gather, fish or loot from creatures is 
 	"开启（默认）：你可以采集、钓鱼或从生物身上剥取的试剂会从商人或拍卖行购买。关闭：自己获取花费其出售价值。"
 L["Shift + wheel, or drag, scrolls the timeline sideways."] =
 	"按住 Shift 滚动滚轮，或拖动，可横向滚动时间线。"
-L["SkillUp's list"] = "SkillUp 的列表"
 L["Timeline"] = "时间线"
 L["Turning Buy reagents on writes an Auctionator list with every auction reagent still missing."] =
 	"开启“购买试剂”会写入一个 Auctionator 列表，包含所有仍缺少的拍卖行试剂。"

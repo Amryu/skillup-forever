@@ -492,7 +492,6 @@ L["On (the default), a reagent you could gather, fish or loot from creatures is 
 	"Activé (par défaut) : un composant que vous pourriez récolter, pêcher ou piller sur des créatures s'achète chez un vendeur ou à l'hôtel des ventes. Désactivé : le récupérer soi-même coûte ce qu'il se vendrait."
 L["Shift + wheel, or drag, scrolls the timeline sideways."] =
 	"Maj + molette, ou glisser, fait défiler la chronologie latéralement."
-L["SkillUp's list"] = "Liste de SkillUp"
 L["Timeline"] = "Chronologie"
 L["Turning Buy reagents on writes an Auctionator list with every auction reagent still missing."] =
 	"Activer Acheter des composants écrit une liste Auctionator avec tous les composants d'hôtel des ventes encore manquants."

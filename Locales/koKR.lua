@@ -494,7 +494,6 @@ L["On (the default), a reagent you could gather, fish or loot from creatures is 
 	"켜짐(기본값): 채집, 낚시 또는 생물에게서 얻을 수 있는 재료를 상인이나 경매장에서 삽니다. 꺼짐: 직접 얻는 비용은 판매 가격만큼 듭니다."
 L["Shift + wheel, or drag, scrolls the timeline sideways."] =
 	"Shift + 마우스 휠 또는 드래그로 시간선을 옆으로 스크롤합니다."
-L["SkillUp's list"] = "SkillUp 목록"
 L["Timeline"] = "시간선"
 L["Turning Buy reagents on writes an Auctionator list with every auction reagent still missing."] =
 	"재료 구매를 켜면 아직 부족한 모든 경매장 재료가 Auctionator 목록에 기록됩니다."

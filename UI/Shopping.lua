@@ -80,9 +80,10 @@ function ns.AuctionListName(profession)
 end
 
 -- What the Shopping list says under Auction house, and the auction bar's Search tooltip says in one line (#554).
--- `names` are the Auctionator lists this character's tracked routes write, in the window's order.
+-- `names` are the Auctionator lists SkillUp keeps for them, in the window's order. With Auctionator buying and no
+-- list kept there is no list to point at, so the note is nil and the caller shows none (#860).
 ---@param names string[]?
----@return string
+---@return string?
 function ns.AuctionListNote(names)
 	if not ns.HasAuctionator() then
 		return L["Without Auctionator, a recipe's Search button fills the game's own auction box one reagent at a time."]
@@ -90,10 +91,12 @@ function ns.AuctionListNote(names)
 	if ns.CollectMode() ~= "auction" then
 		return L["Turning Buy reagents on writes an Auctionator list with every auction reagent still missing."]
 	end
-	local listed = names and #names > 0 and table.concat(names, ", ") or L["SkillUp's list"]
+	if not names or #names == 0 then
+		return nil
+	end
 	return string.format(
 		L["Auctionator list: %s. Open the auction house, Shopping tab, pick it and Search; buy each row with a click."],
-		listed
+		table.concat(names, ", ")
 	)
 end
 
@@ -308,7 +311,9 @@ local function KeepsAuctionLists()
 end
 
 -- The Auctionator list SkillUp keeps for a profession's route, or nil when it keeps none: SyncAuctionator writes
--- one only for a tracked route, so a page naming the list asks here rather than for the list's name.
+-- one only for a tracked route, and never for a route with nothing to buy or one the player deleted, so a page
+-- naming the list asks here rather than for the list's name. An Auctionator that cannot read lists back leaves
+-- the writer's own conditions as the only answer.
 ---@param skillLine integer?
 ---@param profession string
 ---@return string?
@@ -316,7 +321,15 @@ function ns.KeptAuctionList(skillLine, profession)
 	if not (KeepsAuctionLists() and ns.IsTracked(skillLine)) then
 		return nil
 	end
-	return ns.AuctionListName(profession)
+	local name = ns.AuctionListName(profession)
+	if not name then
+		return nil
+	end
+	local held, readable = ReadAuctionList(name)
+	if readable and not held then
+		return nil
+	end
+	return name
 end
 
 -- Keep every tracked route's Auctionator list up to date with what it still buys, empties one it no longer needs,
