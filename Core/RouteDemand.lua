@@ -1000,7 +1000,6 @@ end
 -- and bags-only demand independently. Count each shared holding only once.
 ---@param tracked SkillUpTracked[]
 ---@return table<integer, number> missing
----@return table<integer, boolean> unknown
 function RouteDemand.Shortfalls(tracked)
 	local totals = {}
 	for _, entry in ipairs(tracked) do
@@ -1022,16 +1021,14 @@ function RouteDemand.Shortfalls(tracked)
 			end
 		end
 	end
-	local missing, unknown = {}, {}
+	local missing = {}
 	for itemID, total in pairs(totals) do
 		local bags, all = total.held["bags-only"], total.held["bags-and-bank"]
-		if total.unknown or (all and bags and all < bags) then
-			unknown[itemID] = true
-		else
+		if not total.unknown and not (all and bags and all < bags) then
 			missing[itemID] = math.max(0, total.need - (all or bags), total.bagsNeed - (bags or 0))
 		end
 	end
-	return missing, unknown
+	return missing
 end
 
 ---@param plan SkillUpPlan

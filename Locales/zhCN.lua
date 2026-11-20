@@ -211,7 +211,7 @@ L["Scan the auction house with Auctionator, or visit a vendor, to price reagents
 	"用Auctionator扫描拍卖行或访问商人来获取材料价格。"
 L["Scroll"] = "配方"
 L["Search"] = "搜索"
-L["Search reagents at the auction house"] = "在拍卖行搜索材料"
+L["Show reagent search and keep shopping lists"] = "显示材料搜索并维护购物清单"
 L["Sells for"] = "售价"
 L["Sells for x%g"] = "售价 x%g"
 L["Set waypoint"] = "设置路径点"
@@ -283,8 +283,8 @@ L["Waypoint to the quest giver: %s"] = "前往任务NPC的路径点：%s"
 L["What's new after an update"] = "更新后的新内容"
 L["Where the tooltip goes when you hover a recipe. Beside the window, it stays clear of the reagents."] =
 	"鼠标指向配方时提示显示的位置。放在窗口旁边就不会挡住材料。"
-L["While the auction house is open, the Professions window offers a search for the selected recipe's reagents: as many as the crafts you choose still need after your bags and bank. Auctionator's shopping list carries the quantities; without it, each click puts the next reagent in the search box."] =
-	"拍卖行打开时，专业窗口可以搜索所选配方的材料：数量为扣除背包和银行后，你选择的制造次数仍需要的数量。Auctionator的购物清单会带上数量；没有它时，每次点击会把下一个材料填入搜索框。"
+L["Click Search in the Professions window to look for the reagents your chosen crafts still need. With Auctionator, SkillUp also keeps shopping lists for tracked routes set to Buy reagents. Without Auctionator, each click fills the auction house search box with the next reagent."] =
+	"点击专业技能窗口中的搜索，查找所选制作数量仍缺少的材料。安装 Auctionator 后，SkillUp 还会维护已追踪且启用了购买材料的路线的购物清单。未安装 Auctionator 时，每次点击都会将下一种材料填入拍卖行搜索框。"
 L["World drop"] = "世界掉落"
 L["Wrist"] = "手腕"
 L["You have it"] = "已拥有"
