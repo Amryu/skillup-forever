@@ -67,7 +67,7 @@ Open a profession and the numbers are already there.
 - `/skillup audit`, with a profession open, prints where the bundled thresholds differ from the colours the game shows.
 - `/skillup trainers` lists the trainer skill requirements SkillUp guessed and which ones a trainer has confirmed.
 
-Settings cover tooltips, recipe rows, prices, tabs, trainers and sorting. Two switches hide tooltip details or the profession tabs whole. Crafted gear and reagent tooltips start off, each one setting away; supply has its own checkbox.
+Settings cover tooltips, recipe rows, prices, tabs, trainers and sorting. Crafted gear and reagent tooltips start off, each one setting away; supply has its own checkbox.
 
 For a bug report, paste `/skillup report`.
 

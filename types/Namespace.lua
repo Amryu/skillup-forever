@@ -297,11 +297,9 @@
 ---@field buffsOnly boolean
 ---@field showSkill boolean
 ---@field showTooltip boolean
----@field showTooltips boolean
 ---@field recipeTooltip 'window'|'cursor'|'row'
 ---@field showRowPrices boolean
 ---@field rowCost 'skillup'|'craft'
----@field showCost boolean
 ---@field priceSource 'auctionator'|'tsm'|'ahdb'|'naowh'
 ---@field craftValue 'none'|'vendor'|'auction'|'sale'
 ---@field valueGathered boolean
@@ -358,6 +356,8 @@
 ---@class SkillUpDB : SkillUpDefaults
 ---@field trackerHost? ForeverTrackerLegacySettings the addon's old tracker table, offered to ForeverCore once
 ---@field auctionListSignatures? table<string, string> The need SkillUp last wrote for each Auctionator list name
+---@field showTooltips? boolean Legacy migration only.
+---@field showCost? boolean Legacy migration only.
 ---@field showReagentTooltip? boolean Legacy migration only.
 ---@field priceDays? table Legacy migration only.
 ---@field latestPrice? number Legacy migration only.
