@@ -142,6 +142,15 @@ local env = setmetatable({
 	end,
 }, { __index = _G })
 
+-- Core's own settings helpers, so the shared attach row is the one every Forever addon registers.
+local coreNs = {}
+for _, path in ipairs({ "Locales/enUS.lua", "UI/SettingsPage.lua", "UI/SettingsSections.lua" }) do
+	local chunk = assert(loadfile(dofile("tests/forever_core.lua").directory() .. "/" .. path), path)
+	setfenv(chunk, env)
+	chunk("ForeverCore", coreNs)
+end
+env.ForeverCore.SettingsSections = coreNs.SettingsSections
+
 local refreshed = 0
 local trackerState = { attached = true, locked = false, scale = 1 }
 local attachmentChanged
@@ -166,6 +175,7 @@ env.ForeverCore.TrackerHost = {
 		attachmentChanged = callback
 	end,
 }
+coreNs.TrackerHost = env.ForeverCore.TrackerHost
 local ns = {
 	core = {
 		SafeCall = function(_, fn, ...)
@@ -395,3 +405,41 @@ local before = opens
 ns.OpenSettings()
 assert(opens == before + 1, "OpenSettings opens through the client's own opener")
 assert(opened == category:GetID(), "OpenSettings opens the addon's own category")
+
+-- The loader adopts an installed standalone ForeverCore as it is, even when it is older than the pinned release.
+-- ForeverCore 1.15.3 has no SettingsSections.RegisterTrackerAttach (added in 1.15.4): the page goes without the
+-- Attach row, and every other row still registers.
+local function Keys()
+	local keys = {}
+	for _, entry in ipairs(registered) do
+		if entry.initializer.setting then
+			keys[entry.initializer.setting.key] = true
+		end
+	end
+	return keys
+end
+local withAttach = Keys()
+local olderSections = {}
+for name, member in pairs(coreNs.SettingsSections) do
+	olderSections[name] = member
+end
+olderSections.RegisterTrackerAttach = nil
+env.ForeverCore.SettingsSections = olderSections
+for index = #registered, 1, -1 do
+	registered[index] = nil
+end
+ns.RegisterSettings()
+local after = Keys()
+local missing = {}
+for key in pairs(withAttach) do
+	if not after[key] then
+		missing[#missing + 1] = key
+	end
+end
+table.sort(missing)
+assert(
+	table.concat(missing, " ") == "trackerAttached",
+	"only the Attach row is missing: " .. table.concat(missing, " ")
+)
+assert(after.trackerLocked and after.trackerScale, "Lock and scale still register with an older core")
+print("settings: an older ForeverCore without the Attach row: ok")
