@@ -916,6 +916,8 @@ local function BatchCandidates(itemID, depth, ledger, firstBatch, lastBatch, qua
 		if units and units > 0 then
 			stock = stock + units
 		end
+		-- Spare batch output bends a cost the same way stock does.
+		stock = stock + math.max(ledger[-id] or 0, 0)
 	end
 	local wanted, list = {}, {}
 	local function Span(from, to)
