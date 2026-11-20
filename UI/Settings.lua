@@ -428,7 +428,7 @@ function ns.RegisterSettings()
 			rows,
 			"gatherTooltip",
 			L["Gathering skill on nodes"],
-			L["Herb and ore node tooltips show the skill they need and its colour at yours (English client only). Skinnable corpses show ? until the skinning rule is confirmed on Forever."]
+			L["Herb and ore node tooltips show the skill they need and its colour at yours. Skinnable corpses show ? until the skinning rule is confirmed on Forever."]
 		)
 
 		Choice(

@@ -8,7 +8,7 @@ Free, with nothing locked behind it. If it saves you time, you can [sponsor me o
 
 - Recipe colours come from the game, but a recipe you have not seen yet uses bundled thresholds that can be slightly off.
 - Trainer fees, requirements and drop chances come from Classic databases, as the game lists none until you visit.
-- Gathering nodes and corpses have no colour in the game, so theirs is an estimate, on English clients only.
+- Gathering nodes and corpses have no colour in the game, so theirs is an estimate.
 - Prices need an auction scan or a price addon; until then, steps show a price unknown.
 - Working Overtime's bonus (4% per rank, 20% at 5/5) may be added points or a multiplier, so its estimate is off by default.
 - With a controller, closing the window under a SkillUp sort can report a harmless blocked action.
@@ -47,7 +47,7 @@ These images are generated previews of the SkillUp UI.
 - **Levelling routes.** Crafts, trainer visits, skill books and rank quests to your target skill, in the order you craft them, with fees, tools and stations. Cheaper crafted reagents become their own steps, Craft next makes missing intermediates first, and right-clicking a recipe and choosing *Not this recipe* plans without it.
 - **Shopping lists.** Reagents are counted against bags and bank. Buying is the default, so materials your professions gather are bought unless you choose to gather them; track the list beside quests, buy vendor stock and keep an Auctionator list up to date. At the auction house, search a recipe's reagents for any number of crafts.
 - **A supply page beside the route.** With a profession and a merchant open, write down what you assume about each offer's price, stock, purchase limit and trips, then read the route's chance and next step before you apply it. Nothing is filled in for you.
-- **Trainers, reagents and gathering.** Trainers mark the best recipe to train next. Reagent tooltips, enabled in settings, show what tracked routes need; hold Shift for every recipe that uses the item, and each line names its profession. On English clients, herb and ore nodes show the skill they need, coloured at yours.
+- **Trainers, reagents and gathering.** Trainers mark the best recipe to train next. Reagent tooltips, enabled in settings, show what tracked routes need; hold Shift for every recipe that uses the item, and each line names its profession. Herb and ore nodes show the skill they need, coloured at yours.
 - **Crafted gear and buffs.** The gear tab, enabled in settings, shows the newest craft for each slot with its recipe, reagents and learning location. The buffs tab shows what each profession can make for your level on a skill timeline.
 
 ## Prices

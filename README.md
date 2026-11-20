@@ -16,7 +16,7 @@ SkillUp Forever shows skill-up chances, recipe costs and colour thresholds in th
 
 - Recipe colours come from the game, but a recipe you have not seen yet uses bundled thresholds that can be slightly off.
 - Trainer fees, requirements and drop chances come from Classic databases, as the game lists none until you visit.
-- Gathering nodes and corpses have no colour in the game, so theirs is an estimate, on English clients only.
+- Gathering nodes and corpses have no colour in the game, so theirs is an estimate.
 - Prices need an auction scan or a price addon; until then, steps show a price unknown.
 - Working Overtime's bonus (4% per rank, 20% at 5/5) is not confirmed as added points or a multiplier, so the estimate is off by default; turn on Include Working Overtime estimate to see the additive reading.
 - With a controller, closing the Professions window while a SkillUp sort or the unlearned list is on can report a blocked action. It does no harm; reopen the window to carry on.
@@ -44,7 +44,7 @@ The tooltip draws the thresholds on the game's bar, then each reagent's price an
 - **Shopping lists** count reagents against bags and bank and keep an Auctionator list current; at the auction house, search a recipe's reagents for the crafts you choose. [Shopping details](docs/route.md#shopping-list).
 - **Supply page** sits beside the route: with a profession and a merchant open, note what you assume about each offer's price, stock, limit and trips, then read the route's chance. [Supply details](docs/supply-policy.md).
 - **Trainer annotations** show chance and cost, with a green arrow on the best recipe for your route.
-- **Reagent tooltips**, on in settings, show what tracked routes need; Shift lists every recipe that uses the item, naming its profession. Herb and ore nodes show the skill they need, coloured at yours, on English clients.
+- **Reagent tooltips**, on in settings, show what tracked routes need; Shift lists every recipe that uses the item, naming its profession. Herb and ore nodes show the skill they need, coloured at yours.
 - **Crafted gear** shows the newest item you could craft for each slot, with its recipe and reagents. [Gear details](docs/gear.md).
 - **Buffs** show what each profession can make for your level on a skill timeline. [Buffs details](docs/buffs.md).
 
