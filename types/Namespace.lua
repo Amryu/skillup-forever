@@ -273,6 +273,7 @@
 ---@field LootedFrom table<integer, boolean> Reagents a creature drops, which any character can loot.
 ---@field LimitedStock table<integer, table<integer, number>> Per item, the vendors that limit its stock and by how much.
 ---@field NodeSkills table<string, number[]> { gathering skill line, required skill } per enUS herb or ore node name.
+---@field NodeEntrySkills table<integer, number[]> { gathering skill line, required skill } per herb or ore gameobject entry.
 ---@field ScrollDrops table<integer, number[][]>
 ---@field WorldDrops table<integer, boolean>
 ---@field Questie SkillUpQuestie
