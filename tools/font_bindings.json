@@ -1055,7 +1055,7 @@
     },
     {
       "source": "UI/Shopping.lua",
-      "sha256": "3721b1f0fbd2f5904e79e9f681de431f4493842fc8735bf803744780faa25e02",
+      "sha256": "47f47b7081d6971b94a9d1d402318e5dd92659bab6a8b46b5af90bfef83042a1",
       "review": "Reviewed Confirm, AskToBuy, PurchaseList, EnsureMerchantFrames, RenderMerchantPage and tracker LayoutEntry/TrainingSteps. Confirm.Text explicitly uses GameFontHighlight. Confirm.Close and merchantBuyAll use SharedButtonSmallTemplate, verified in pinned ThreeSliceButtonTemplate.xml with normal/highlight/disabled GameFontNormal/GameFontHighlight/GameFontDisable. Tracker fonts depend on ForeverCore TrackerSection and its interactive line template; the consumer alone does not establish the final fonts, so all tracker phrases are excluded. Merchant tab font changes via PanelTemplates selection and merchant template-owned names are excluded. Tooltips, menus, chat, external helper output and inserted item names are excluded. No font overrides on bound confirmation or button widgets. Reviewed the separate recipe view, preview selection refresh and tracker menu contract changes; no bound widget FontObjects or phrase bindings changed. Reviewed #860: KeepsAuctionLists, ns.KeptAuctionList and the AuctionListNote nil return add no widgets or font setters. Reviewed the tracked-needs signature gaining the plan revision (#858): a cache key only; no bound widget FontObjects or phrase bindings changed. Reviewed forever-core#884: RefreshTracker marks the section dirty whatever the show switch says; no widgets or font setters.",
       "bindings": [
         {
@@ -1131,7 +1131,7 @@
     },
     {
       "source": "UI/Tooltip.lua",
-      "sha256": "58f315c823b3f98622f56eef65daba08e035e7aec76f44204ab089dfcfdfc9a6",
+      "sha256": "4eb2845cbcb4b125ab19f89e492517b963063254c5758acd8a171aadf752cd97",
       "review": "Reviewed CreateSkillBar and LayoutSkillBar, recipe and item tooltip producers. Tooltip phrases and tooltip-owned fonts are excluded by policy. The reusable skill bar explicitly uses GameFontHighlightSmall and is also reparented by DetailsBar.lua, but no tooltip producer is included in this coverage claim. Dynamic threshold values and helper text are excluded.",
       "bindings": []
     },

@@ -15,6 +15,7 @@ end
 local ORDER = {
 	"schematics",
 	"prices",
+	"craftCosts",
 	"sourceEvidence",
 	"recipeEvidence",
 	"plans",
@@ -227,6 +228,9 @@ local STALE = {
 	-- Where scrolls, vendors and trainers are, read from Questie and AtlasLoot or seen at a merchant's window.
 	-- A vendor-sold recipe's scroll price is a plan input too (#358).
 	sources = {
+		craftCosts = true,
+		recipePreview = true,
+		recipeList = true,
 		tooltipCache = true,
 		tooltipRoute = true,
 		plans = true,
@@ -311,6 +315,7 @@ local EVENTS = {
 	TRADE_SKILL_SHOW = "window",
 	SKILL_LINES_CHANGED = "skill",
 	BAG_UPDATE_DELAYED = "bags",
+	BANKFRAME_OPENED = "bags",
 	ITEM_DATA_LOAD_RESULT = "items",
 	PLAYER_LEVEL_UP = "level",
 	ZONE_CHANGED_NEW_AREA = "zone",

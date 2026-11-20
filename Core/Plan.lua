@@ -272,7 +272,7 @@ local function PricedReagents(recipeID, reagents, held)
 		priced[#priced + 1] = {
 			itemID = itemID,
 			quantity = reagent.quantity,
-			buy = ns.ObtainCost and ns.ObtainCost(itemID) or nil,
+			buy = ns.ObtainCost and ns.ObtainCost(itemID, reagent.quantity) or nil,
 			held = held[itemID] and ns.HeldCost and ns.HeldCost(itemID) or nil,
 		}
 	end
@@ -329,9 +329,8 @@ local function GatherableUnknown(reagents)
 	---@type false|"gather"|"auction"
 	local missing = false
 	for _, reagent in ipairs(reagents or {}) do
-		if ns.ObtainCost(reagent.itemID) == nil then
-			local _, overflow = ns.LimitedReagentPrice(reagent.itemID)
-			local price = overflow or ns.Price(reagent.itemID)
+		if ns.ObtainCost(reagent.itemID, reagent.quantity) == nil then
+			local _, price = ns.ReagentBuyCost(reagent.itemID, reagent.quantity)
 			if price and price.source == "auction" and price.unknown then
 				missing = "auction"
 			elseif price and price.source == "gather" then
@@ -779,7 +778,7 @@ local function Expand(recipeID, crafts, depth, making, bags, reserved)
 		local maker = depth < MAX_SUB_DEPTH
 			and not making[reagent.itemID]
 			and ns.SubCraft
-			and ns.SubCraft(reagent.itemID)
+			and ns.SubCraft(reagent.itemID, math.max(need - (reserved[index] or 0), 1))
 		if maker and maker.quantity and maker.quantity > 0 then
 			-- Held copies of the intermediate are used before any are made, then held inputs make what they cover
 			-- (#858); the market's maker makes the rest. The steps after this see what is left.
@@ -943,15 +942,15 @@ function ns.PlanMoney(plan)
 	local buy, unknown = 0, 0
 	for itemID, short in pairs(count) do
 		if short > 0 then
-			local stock, overflow = ns.LimitedReagentPrice(itemID)
+			local stock, overflow, vendor = ns.LimitedReagentPrice(itemID)
 			local each
-			if stock and overflow then
+			if stock and overflow and vendor then
 				local vendorCount = math.min(short, stock)
-				buy = buy + vendorCount * ns.Price(itemID).copper
+				buy = buy + vendorCount * vendor.copper
 				short = short - vendorCount
 				each = not overflow.unknown and overflow.copper or nil
 			else
-				each = ns.ObtainCost and ns.ObtainCost(itemID)
+				each = ns.ObtainCost and ns.ObtainCost(itemID, short)
 			end
 			if not each and not overflow then
 				local price = ns.Price and ns.Price(itemID)
@@ -1083,6 +1082,7 @@ local function Finish(profession, target, route)
 			color = ns.Model.Color(ns.Model.Get(segment.recipeID), segment.fromSkill),
 			station = ns.RecipeStation and ns.RecipeStation(segment.recipeID) or nil,
 			subcrafts = subcrafts,
+			raw = expanded[index].raw,
 			held = usedHeld or nil,
 		}
 	end
@@ -1221,7 +1221,8 @@ end
 local function RefreshSubcrafts(plan)
 	local expanded = ExpandRoute(plan.crafts)
 	for index, craft in ipairs(plan.crafts) do
-		craft.subcrafts, craft.held = expanded[index].subcrafts, expanded[index].held or nil
+		craft.subcrafts, craft.raw, craft.held =
+			expanded[index].subcrafts, expanded[index].raw, expanded[index].held or nil
 	end
 	-- The plan stays the same table while its expansion follows the bags, so the revision follows the expansion.
 	local signature = ExpandedSignature(expanded)
@@ -1560,13 +1561,14 @@ function ns.RouteReagents(plan)
 	for _, source in ipairs(ns.Model.SHOPPING_SOURCES) do
 		for _, item in ipairs(list[source]) do
 			local itemID, need = item.itemID, item.count
-			local stock, overflow
+			local stock, overflow, vendor
 			if source == "vendor" and ns.LimitedReagentPrice then
-				stock, overflow = ns.LimitedReagentPrice(itemID)
+				stock, overflow, vendor = ns.LimitedReagentPrice(itemID)
 			end
 			local limited = source == "vendor" and ns.IsLimitedStock and ns.IsLimitedStock(itemID) or nil
-			if stock and overflow then
-				local have = math.min(ns.Have(itemID), need)
+			local have
+			if stock and overflow and vendor then
+				have = math.min(ns.Have(itemID), need)
 				local vendorCount = math.min(need - have, stock)
 				if need - have > vendorCount then
 					if vendorCount > 0 then
@@ -1576,7 +1578,7 @@ function ns.RouteReagents(plan)
 							have = 0,
 							source = "vendor",
 							limited = limited,
-							allocatedPrice = ns.Price(itemID),
+							allocatedPrice = vendor,
 						}
 					end
 					items[#items + 1] = {
@@ -1590,7 +1592,14 @@ function ns.RouteReagents(plan)
 				end
 			end
 			if need > 0 then
-				items[#items + 1] = { itemID = itemID, need = need, source = source, limited = limited }
+				items[#items + 1] = {
+					itemID = itemID,
+					need = need,
+					have = have,
+					source = source,
+					limited = limited,
+					allocatedPrice = vendor,
+				}
 			end
 		end
 	end
@@ -1616,9 +1625,9 @@ function ns.UnpricedReagents(plan)
 		for _, reagent in ipairs(ns.Reagents(recipeID) or {}) do
 			if not seen[reagent.itemID] then
 				local price = ns.Price(reagent.itemID)
-				if price and price.source == "vendor" then
-					local _, overflow = ns.LimitedReagentPrice(reagent.itemID)
-					price = overflow or price
+				if price and price.source == "vendor" and ns.ReagentBuyCost then
+					local _, buy = ns.ReagentBuyCost(reagent.itemID, reagent.quantity)
+					price = buy
 				end
 				if not price or price.unknown then
 					seen[reagent.itemID] = true
