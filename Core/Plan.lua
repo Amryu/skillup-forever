@@ -823,7 +823,7 @@ local function Expand(recipeID, crafts, depth, making, bags, reserved, stock, sp
 		-- the copies reserved from the bags and before buying or making more.
 		local spares = reagentStock or spare
 		local copies = spares and math.min(need - held, spares[-reagent.itemID] or 0) or 0
-		if copies > 0 then
+		if spares and copies > 0 then
 			spares[-reagent.itemID] = spares[-reagent.itemID] - copies
 			need = need - copies
 		end
