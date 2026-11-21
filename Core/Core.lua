@@ -516,26 +516,18 @@ function ns.PlayerProfessions()
 	return professions
 end
 
--- This character's realm in the client's normalized form (no spaces or hyphens). GetNormalizedRealmName returns nil
--- early in loading, so it falls back to GetRealmName stripped the same way; nil when the client has neither yet.
----@return string?
-function ns.NormalizedRealm()
-	local realm = GetNormalizedRealmName()
-	if not realm or realm == "" then
-		realm = ((GetRealmName() or ""):gsub("[%s%-]", ""))
-	end
-	return realm ~= "" and realm or nil
-end
-
--- This character's key in the account-wide saved variables, "Name-Realm". Nil while the client has no name or realm
--- for it yet: callers then read the defaults and save nothing.
+-- This character's key in the account-wide saved variables: ForeverCore's, "Name-Realm" on a named realm and
+-- "Name Surname-<server>" on a Forever realm, which has no realm name. Nil while the client has no name or GUID for
+-- it yet: callers then read the defaults and save nothing. Kept per player GUID: hot lookups (IsLearned, the cached
+-- route) ask on every call, and the core builds the key afresh each time.
+local keyGUID, characterKey
 ---@return string?
 function ns.CharacterKey()
-	local name, realm = UnitName("player"), ns.NormalizedRealm()
-	if not name or name == "" or not realm then
-		return nil
+	local guid = UnitGUID("player")
+	if guid ~= keyGUID or not characterKey then
+		keyGUID, characterKey = guid, ForeverCore.CharacterKey()
 	end
-	return name .. "-" .. realm
+	return characterKey
 end
 
 -- The client's own build number, nil when it doesn't report one.

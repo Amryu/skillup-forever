@@ -691,6 +691,10 @@ env = setmetatable({
 	UnitName = function()
 		return "Player"
 	end,
+	-- Core/Core.lua keys the character's saves by the player's GUID.
+	UnitGUID = function()
+		return "Player-1-0000000A"
+	end,
 	UnitFactionGroup = function()
 		return "Alliance"
 	end,
@@ -1002,6 +1006,9 @@ ProfessionTabs.minor = 2
 env.ForeverCore = {
 	API = 1,
 	ProfessionTabs = ProfessionTabs,
+	CharacterKey = function()
+		return "Player-Realm"
+	end,
 	-- The shared API kit (ForeverCore's Core/APIKit.lua): a render subscribes to nothing and a read is answered from
 	-- the scene's own data, so the hub only has to exist.
 	APIKit = {
