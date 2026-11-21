@@ -40,8 +40,14 @@ local function Env(messages, callbacks)
 				callbacks[name] = callback
 			end,
 		},
+		UnitGUID = function()
+			return "Player-1-00000001"
+		end,
 		ForeverCore = {
 			API = 1,
+			CharacterKey = function()
+				return "Tester-Realm"
+			end,
 			Register = function(_, spec)
 				return {
 					SafeCall = pcall,

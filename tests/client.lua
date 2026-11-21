@@ -280,7 +280,7 @@ function Client.load(options)
 		npc = nil, -- { id, name }: who the player is dealing with, the client's "npc" unit
 		money = 1000000,
 		level = 60,
-		player = { name = "Tester", realm = "Realm", faction = "Alliance", x = 0, y = 0, instance = 0 },
+		player = { name = "Tester", surname = "Surname", realm = "", faction = "Alliance", x = 0, y = 0, instance = 0 },
 		maps = {}, -- [world instance] = { mapID, name }: the continent's one zone map
 		areas = {}, -- [areaID] = name
 		opened = {}, -- profession IDs passed to OpenTradeSkill
@@ -1103,7 +1103,8 @@ function Client.load(options)
 		if unit == "npc" then
 			return c.npc and c.npc.name
 		end
-		return c.player.name
+		-- A Forever realm has no name, and the player's second name is their surname.
+		return c.player.name, c.player.realm == "" and c.player.surname or nil
 	end
 	G.UnitRace = function()
 		return "Orc", "Orc"
@@ -1111,8 +1112,26 @@ function Client.load(options)
 	G.UnitClass = function()
 		return c.player.className or "Shaman", c.player.classFile or "SHAMAN", c.player.classID or 64
 	end
+	-- Each character the spec plays (name, surname and realm) has its own GUID, as in the client, the first one
+	-- Player-6941-00000001.
+	local guids, guidCount, lastName, lastSurname, lastRealm, lastGUID = {}, 0, nil, nil, nil, nil
 	G.UnitGUID = function(unit)
+		if unit == "player" then
+			local p = c.player
+			if p.name ~= lastName or p.surname ~= lastSurname or p.realm ~= lastRealm or not lastGUID then
+				local who = table.concat({ p.name or "", p.surname or "", p.realm or "" }, "\0")
+				if not guids[who] then
+					guidCount = guidCount + 1
+					guids[who] = string.format("Player-6941-%08d", guidCount)
+				end
+				lastName, lastSurname, lastRealm, lastGUID = p.name, p.surname, p.realm, guids[who]
+			end
+			return lastGUID
+		end
 		return unit == "npc" and c.npc and string.format("Creature-0-1-0-0-%d-0000000001", c.npc.id) or nil
+	end
+	G.GetRealmID = function()
+		return c.player.realm == "" and 0 or 1
 	end
 	G.GetNormalizedRealmName = function()
 		return c.player.realm
