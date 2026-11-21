@@ -176,6 +176,22 @@ do
 	Client.equal(shopping.total, 56, "shopping uses both vendor quotes")
 end
 
+do
+	local c, ns = setup({
+		Thresholds = { [R] = { 1, 2, 2, 2 }, [ALT] = { 2, 20, 40, 60 } },
+		RecipeData = { [R] = recipe(Y), [ALT] = recipe(Y), [M] = recipe(Z, Y, 3) },
+		VendorPrices = { [Z] = 6 },
+		ItemSellPrices = {},
+	}, 3)
+	c.known[R], c.known[ALT], c.known[M] = true, true, true
+	local p = plan(c)
+	Client.equal(#p.crafts, 2, "the route takes two consecutive steps")
+	Client.equal(p.crafts[1].subcrafts[1].crafts, 1, "the first step makes one batch")
+	Client.equal(#p.crafts[2].subcrafts, 0, "the second step uses the spare")
+	Client.equal(ns.PlanMoney(p).buy, 6, "the shopping list buys inputs for one batch")
+	Client.equal(p.cost, 6, "the route total charges the same whole batch")
+end
+
 for _, reverse in ipairs({ false, true }) do
 	local parent = recipe(reverse and Z or X)
 	parent.reagents[2] = { itemID = reverse and X or Z, quantity = 1 }
@@ -232,6 +248,60 @@ do
 	Client.equal(p.crafts[1].recipeID, R, "the stocked batch wins")
 	Client.equal(p.crafts[1].crafts, 2, "the spare output covers the second point")
 	Client.equal(ns.PlanMoney(p).buy, 5, "both points use the same batch")
+end
+
+for _, reverse in ipairs({ false, true }) do
+	local W = 10007
+	local parent = recipe(reverse and Y or X)
+	parent.reagents[2] = { itemID = reverse and X or Y, quantity = 1 }
+	local c, ns = setup({
+		Thresholds = { [R] = { 1, 20, 40, 60 } },
+		RecipeData = { [R] = parent, [M] = recipe(Y, X, 1), [M + 1] = recipe(W, Y, 2) },
+		LootedFrom = { [W] = { 1 } },
+		LimitedStock = {},
+		ItemSellPrices = {},
+	}, 2)
+	c.known[R], c.known[M], c.known[M + 1] = true, true, true
+	c.auction[W] = 100
+	merchant(c, 5001, W, 5, 1)
+	local p = plan(c)
+	Client.equal(ns.PlanMoney(p).buy, 5, "one stocked batch feeds the direct Y and the Y inside X")
+	Client.equal(p.cost, 5, "the route's net cost buys the batch once")
+	Client.equal(ns.CraftCost(R), 5, "the preview shares the batch between siblings")
+end
+
+do
+	local W = 10007
+	local parent = recipe(X)
+	parent.reagents[2] = { itemID = Y, quantity = 1 }
+	local c, ns = setup({
+		Thresholds = { [R] = { 1, 20, 40, 60 } },
+		RecipeData = { [R] = parent, [M] = recipe(Y, X, 1), [M + 1] = recipe(W, Y, 2) },
+		VendorPrices = { [W] = 5 },
+		ItemSellPrices = {},
+	}, 2)
+	c.known[R], c.known[M], c.known[M + 1] = true, true, true
+	Client.equal(ns.PlanMoney(plan(c)).buy, 5, "an unlimited batch shared by two siblings is bought once")
+end
+
+do
+	local parent = recipe(X)
+	parent.reagents[2] = { itemID = Z, quantity = 1 }
+	local c, ns = setup({
+		Thresholds = { [R] = { 1, 20, 40, 60 } },
+		RecipeData = { [R] = parent, [M] = recipe(Y, X, 1), [M + 1] = recipe(Y, Z, 1) },
+		LootedFrom = { [Y] = { 1 } },
+		LimitedStock = {},
+		ItemSellPrices = {},
+	}, 2)
+	c.known[R], c.known[M], c.known[M + 1] = true, true, true
+	c.auction[X], c.auction[Y], c.auction[Z] = 10, 100, 105
+	merchant(c, 5001, Y, 5, 1)
+	local shares = ns.StockShares(parent.reagents, {})
+	Client.equal(shares[1][Y], 0, "the preview split ranks by money paid: X is cheaper bought")
+	Client.equal(shares[2][Y], 1, "the stocked Y goes to Z, where it saves the most")
+	Client.equal(ns.PlanMoney(plan(c)).buy, 15, "the route buys X and makes Z")
+	Client.equal(ns.CraftCost(R), 109.75, "the preview floors the route's split at each sale value")
 end
 
 do

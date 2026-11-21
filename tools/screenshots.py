@@ -691,6 +691,10 @@ env = setmetatable({
 	UnitName = function()
 		return "Player"
 	end,
+	-- Core/Core.lua keys the character's saves by the player's GUID.
+	UnitGUID = function()
+		return "Player-1-0000000A"
+	end,
 	UnitFactionGroup = function()
 		return "Alliance"
 	end,
@@ -940,6 +944,7 @@ env = setmetatable({
 	NaowhForever = false,
 	ShortestPathForever = false,
 	IsLoggedIn = function() return true end,
+	ForeverLedgerAPI = false,
 	-- ForeverCore's shared services; the scene below fills them in.
 	ForeverCore = false,
 	BugGrabber = false,
