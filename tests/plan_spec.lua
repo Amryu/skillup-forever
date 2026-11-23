@@ -215,6 +215,11 @@ equal(ns.RankText(book), "Buy and read Expert First Aid - Under Wraps at 125", "
 ns.db.vendor[UNDER_WRAPS] = 9000
 equal(Plan(FirstAid(120, 0, 150), 170).steps[2].rank.fee, 9000, "a merchant's price wins")
 ns.db.vendor[UNDER_WRAPS] = nil
+local beforeRank = Plan(FirstAid(130, 0, 150), nil)
+local trainedRank = ns.PlanRoute(FirstAid(131, 0, 225))
+equal(trainedRank.target, beforeRank.target, "training a planned rank keeps the shopping target")
+equal(#trainedRank.ranks, 0, "training a planned rank takes its fee out of the shopping route")
+equal(trainedRank.crafts[1].recipeID, beforeRank.crafts[1].recipeID, "training a planned rank keeps the first recipe")
 local capped = Plan(FirstAid(150, 0, 150), 170)
 equal(Kinds(capped), "rank craft", "at the cap, the book comes first")
 equal(
@@ -563,10 +568,11 @@ equal(lowPlan.crafts[1].recipeID, 101, "below its required level the buff recipe
 local shop = Client.load({
 	saved = { routeTargets = { [171] = 25 }, craftValue = "none", vendor = { [1000] = 10, [1001] = 11 } },
 	data = {
-		Thresholds = { [101] = { 1, 5, 8, 12 }, [102] = { 1, 5, 8, 30 } },
+		Thresholds = { [101] = { 1, 5, 8, 12 }, [102] = { 1, 5, 8, 30 }, [103] = { 1, 5, 8, 30 } },
 		RecipeData = {
 			[101] = { skillLine = 171, reagents = { { itemID = 1000, quantity = 1 } } },
 			[102] = { skillLine = 171, reagents = { { itemID = 1001, quantity = 1 } } },
+			[103] = { skillLine = 171, reagents = { { itemID = 1002, quantity = 1 } } },
 		},
 		VendorPrices = {},
 		TrainerFees = {},
@@ -629,6 +635,50 @@ equal(Crafts(ShopPlan()), "101 102", "the route's own reagent is priced and boug
 shop.known[101] = nil
 shop.Fire("NEW_RECIPE_LEARNED")
 equal(Crafts(ShopPlan()), "102", "a recipe the route uses that is no longer known replans it")
+
+shop.known[101], shop.known[103] = true, true
+shopNs.db.routeTargets[171] = nil
+shop.Fire("NEW_RECIPE_LEARNED")
+shopNs.Changed("replan")
+equal(Crafts(ShopPlan()), "101 102", "the default target starts with the purchased recipes")
+shopNs.db.vendor[1000], shopNs.db.vendor[1001] = 100, 1
+shopNs.Changed("prices")
+local purchased = ShopPlan()
+equal(purchased.unpriced, 1, "one known recipe is waiting for a price")
+shopNs.db.vendor[1002] = 1000
+shopNs.Changed("prices")
+shop.professions[1].rank = shop.professions[1].rank + 1
+shop.bags[1000] = shop.bags[1000] - 1
+shop.Fire("BAG_UPDATE_DELAYED")
+local progressed = ShopPlan()
+equal(progressed.unpriced, 0, "the continued batch clears warnings for recipes that now have prices")
+equal(Crafts(progressed), "101 102", "a craft keeps the remaining purchased recipes in order")
+equal(progressed.target, purchased.target, "the shopping batch keeps its displayed target")
+equal(progressed.crafts[1].from, purchased.crafts[1].from + 1, "the first recipe starts at current skill")
+assert(
+	progressed.crafts[1].crafts < purchased.crafts[1].crafts,
+	"the shopping batch no longer counts the completed skill"
+)
+equal(ShopPlan(), progressed, "a later query keeps the same progressed batch")
+
+shop.professions[1].rank = progressed.crafts[1].to
+local nextBand = ShopPlan()
+equal(Crafts(nextBand), "102", "reaching the next recipe removes the completed band")
+equal(nextBand.crafts[1].from, shop.professions[1].rank, "the next recipe starts at live skill")
+shop.professions[1].rank = nextBand.target
+assert(ShopPlan().target > nextBand.target, "finishing the shopping batch resumes the rolling target")
+
+shop.professions[1].rank = 1
+shop.known[102], shop.known[103] = nil, nil
+shop.Fire("NEW_RECIPE_LEARNED")
+shopNs.Changed("replan")
+local shortRoute = ShopPlan()
+assert(shortRoute.reached < shortRoute.target, "one recipe cannot reach the target")
+shop.known[102] = true
+shop.Fire("NEW_RECIPE_LEARNED")
+shop.professions[1].rank = 2
+local openedRoute = ShopPlan()
+equal(openedRoute.reached, openedRoute.target, "learning a recipe lets an incomplete route continue")
 
 -- A route that trains a recipe for its next step: buying that recipe's scroll and learning it is the step done,
 -- so the route is planned again with the training gone and the crafts in the same order.
