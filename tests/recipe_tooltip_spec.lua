@@ -456,10 +456,19 @@ local function RecipeItemPrice()
 		end
 	end
 end
+local function TrainerFee()
+	for _, pair in ipairs(doubleLines) do
+		if pair[1] == "Trainer" then
+			return pair[2]
+		end
+	end
+end
+
 ns.VendorPrices[SCROLL_ITEM] = 250
 c.ns.Changed("prices")
 ns.ShowRecipeTooltip(ns, row, { recipeInfo = { recipeID = SCROLLED, name = "Priced Recipe Item", learned = false } })
 equal(RecipeItemPrice(), "250 |cff808080(vendor)|r", "a scrolled recipe says what its recipe item costs and where")
+equal(TrainerFee(), nil, "a recipe item does not also show a trainer fee")
 ns.VendorPrices[SCROLL_ITEM] = nil
 c.ns.Changed("prices")
 ns.ShowRecipeTooltip(ns, row, { recipeInfo = { recipeID = SCROLLED, name = "Unpriced Recipe Item", learned = false } })
@@ -477,6 +486,9 @@ ns.ShowRecipeTooltip(
 equal(RecipeItemPrice(), nil, "an unknown auction record adds no price line")
 ns.GatheredBy[SCROLL_ITEM] = nil
 c.ns.Changed("prices")
+G.C_TradeSkillUI.GetBaseProfessionInfo = function()
+	return { professionName = "First Aid", professionID = 129 }
+end
 ns.ShowRecipeTooltip(ns, row, {
 	recipeInfo = {
 		recipeID = TRAINED,
@@ -492,5 +504,18 @@ ns.ShowRecipeTooltip(ns, row, {
 	},
 })
 equal(RecipeItemPrice(), nil, "a trainer-only recipe adds no recipe item price")
+
+equal(TrainerFee(), "10", "the bundled trainer fee appears on the added recipe row")
+local trainerRow = { recipeInfo = { recipeID = TRAINED, name = "Trainer recipe", learned = false } }
+local recorded = { [TRAINED] = { 65, 40 } }
+ns.db.trainer[129] = recorded
+ns.ShowRecipeTooltip(ns, row, trainerRow)
+equal(TrainerFee(), "65", "a client-listed unlearned recipe shows its recorded trainer fee")
+recorded[TRAINED] = { [2] = 40 }
+ns.ShowRecipeTooltip(ns, row, trainerRow)
+equal(TrainerFee(), nil, "a trainer with no known fee adds no price line")
+recorded[TRAINED] = { 0, 40 }
+ns.ShowRecipeTooltip(ns, row, trainerRow)
+equal(TrainerFee(), "0", "a verified free service shows zero")
 
 Client.report("recipe_tooltip_spec")
