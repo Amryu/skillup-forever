@@ -690,19 +690,19 @@ shopNs.db.vendor[1000], shopNs.db.vendor[1002] = 10, 20
 shop.Fire("NEW_RECIPE_LEARNED")
 shopNs.Changed("prices")
 shopNs.Changed("replan")
-local short = ShopPlan()
-equal(Crafts(short), "101 103", "the cheaper recipe, then the one that goes further")
-assert(short.reached < short.target, "the two recipes stop short of the target")
+local stopsShort = ShopPlan()
+equal(Crafts(stopsShort), "101 103", "the cheaper recipe, then the one that goes further")
+assert(stopsShort.reached < stopsShort.target, "the two recipes stop short of the target")
 shop.professions[1].rank = 2
 shop.bags[1000] = 3
 shop.Fire("BAG_UPDATE_DELAYED")
 shopNs.db.vendor[1000], shopNs.db.vendor[1002] = 100, 1
 shopNs.Changed("prices")
-local shortOn = ShopPlan()
-equal(Crafts(shortOn), "101 103", "a skill point keeps the recipes of a route that stops short")
-equal(shortOn.crafts[1].from, 2, "the kept route starts at the live skill")
-equal(shortOn.reached, short.reached, "it stops where it did")
-equal(shortOn.stopReason, short.stopReason, "and for the same reason")
+local keptShort = ShopPlan()
+equal(Crafts(keptShort), "101 103", "a skill point keeps the recipes of a route that stops short")
+equal(keptShort.crafts[1].from, 2, "the kept route starts at the live skill")
+equal(keptShort.reached, stopsShort.reached, "it stops where it did")
+equal(keptShort.stopReason, stopsShort.stopReason, "and for the same reason")
 shop.bags[1000] = nil
 shopNs.db.routeTargets[171] = nil
 

@@ -1390,7 +1390,17 @@ local plans = {}
 -- player is shopping for this one, so while every step of it can still be walked its recipes and their order are
 -- kept (#621). A key the player asked for (a new target, the collect switch, a level) is another route and is
 -- committed in its place.
----@type table<integer, { key: string, intent: string, base: number, cap: number, plan: SkillUpPlan, bags: integer, epoch: integer, recipes: integer }>
+---@class SkillUpFollowedRoute
+---@field key string
+---@field intent string
+---@field base number
+---@field cap number
+---@field plan SkillUpPlan
+---@field bags integer The bag change it was last checked against.
+---@field epoch integer The plan drop it was planned under.
+---@field recipes integer The recipe change it was planned under.
+
+---@type table<integer, SkillUpFollowedRoute>
 local committed = {}
 
 -- Counts the times the plans were dropped: a route committed under another count was planned from inputs that
@@ -1739,7 +1749,7 @@ function ns.PlanRoute(profession)
 	end
 	-- The route being followed is checked against the bags here, once per bag change: a route a step can no
 	-- longer afford to craft is planned afresh, any other bag change keeps it (#621).
-	---@type { key: string, intent: string, base: number, cap: number, plan: SkillUpPlan, bags: integer, epoch: integer, recipes: integer }?
+	---@type SkillUpFollowedRoute?
 	local kept = committed[profession.skillLine]
 	local advanced, fresh
 	if
