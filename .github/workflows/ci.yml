@@ -53,7 +53,7 @@ jobs:
           persist-credentials: false
       # Every tool version below lives in this checkout's tools/toolchain.json, which the action reads (its manifest
       # input defaults to that file, resolved against the workspace) and installs and verifies each pin from.
-      - uses: cjber/forever-core/.github/actions/toolchain@2596f68e68f9a727496a19f3f801c8a7039357d2 # main
+      - uses: cjber/forever-core/.github/actions/toolchain@3776350a0b7bd71448ac7a8db8bf58d60303b4d3 # main
         with:
           tools: lua stylua
       - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
@@ -100,7 +100,7 @@ jobs:
           persist-credentials: false
       # Every tool version below lives in this checkout's tools/toolchain.json, which the action reads (its manifest
       # input defaults to that file, resolved against the workspace) and installs and verifies each pin from.
-      - uses: cjber/forever-core/.github/actions/toolchain@2596f68e68f9a727496a19f3f801c8a7039357d2 # main
+      - uses: cjber/forever-core/.github/actions/toolchain@3776350a0b7bd71448ac7a8db8bf58d60303b4d3 # main
         with:
           tools: lua luals
       - run: tools/typecheck.sh
@@ -173,7 +173,7 @@ jobs:
           persist-credentials: false
       # Every tool version below lives in this checkout's tools/toolchain.json, which the action reads (its manifest
       # input defaults to that file, resolved against the workspace) and installs and verifies each pin from.
-      - uses: cjber/forever-core/.github/actions/toolchain@2596f68e68f9a727496a19f3f801c8a7039357d2 # main
+      - uses: cjber/forever-core/.github/actions/toolchain@3776350a0b7bd71448ac7a8db8bf58d60303b4d3 # main
         with:
           tools: gitleaks
       - name: Gitleaks over the full history
@@ -206,7 +206,7 @@ jobs:
           persist-credentials: false
       # Every tool version below lives in this checkout's tools/toolchain.json, which the action reads (its manifest
       # input defaults to that file, resolved against the workspace) and installs and verifies each pin from.
-      - uses: cjber/forever-core/.github/actions/toolchain@2596f68e68f9a727496a19f3f801c8a7039357d2 # main
+      - uses: cjber/forever-core/.github/actions/toolchain@3776350a0b7bd71448ac7a8db8bf58d60303b4d3 # main
         with:
           tools: lua
       # .pkgmeta's manual changelog, which the release fills with the version's entry.
