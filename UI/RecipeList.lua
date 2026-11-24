@@ -56,6 +56,12 @@ local function FitLabel(row, text)
 	if row.Label:GetWidth() > available then
 		row.Label:SetWidth(math.max(available, 40))
 	end
+	local maxText = math.max(row:GetWidth() - row.SkillUps:GetWidth() - count - locked - 14 - 40, 40)
+	if text:GetStringWidth() > maxText then
+		text:SetWidth(maxText)
+	else
+		text:SetWidth(0)
+	end
 end
 
 -- Our row text, keyed by the client's row rather than stored on it: a field an addon writes into a Blizzard
