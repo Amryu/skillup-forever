@@ -71,4 +71,62 @@ local withTraining = Model.PlanWithTraining(trained, { service })
 equal(Steps(withTraining), "1:1-30", "training a recipe for a step the allowance hands over is skipped")
 equal(withTraining.trainingCost, 0, "and its fee is not charged")
 
+-- The allowance is kept on the cost the route shows, with the spare crafts each step carries for an unlucky run.
+-- Handing 2's step to 4 here costs 1.8% more before the spares and 2.8% more with them (#1010).
+---@param share number
+---@return SkillUpRoute
+local function Spares(share)
+	return Model.PlanRoute({
+		skill = 1,
+		target = 70,
+		fewerSteps = share,
+		recipes = {
+			{ recipeID = 1, thresholds = { 20, 31, 51, 73 }, netCost = 1300, reagentCost = 1300, skillUps = 1 },
+			{ recipeID = 2, thresholds = { 4, 31, 35, 46 }, netCost = 3000, reagentCost = 3000, skillUps = 1 },
+			{ recipeID = 3, thresholds = { 1, 19, 32, 41 }, netCost = 3600, reagentCost = 3600, skillUps = 1 },
+			{ recipeID = 4, thresholds = { 1, 17, 32, 47 }, netCost = 3100, reagentCost = 3100, skillUps = 1 },
+		},
+	})
+end
+local spareCheapest, spareTwo, spareThree = Spares(0), Spares(0.02), Spares(0.03)
+equal(Steps(spareCheapest), "4:1-4 2:4-20 1:20-70", "the cheapest route takes three steps")
+equal(Steps(spareTwo), Steps(spareCheapest), "2% does not cover the hand-over once the spares are counted")
+equal(Steps(spareThree), "4:1-20 1:20-70", "3% does")
+assert(spareThree.expectedCost <= spareCheapest.expectedCost * 1.03, "and the shown cost stays within it")
+
+-- A sweep of seeded routes: whatever the shape, the shown cost stays within the share of the cheapest route's.
+local seed = 20261124
+local function Random(low, high)
+	seed = (seed * 1103515245 + 12345) % 2147483648
+	return low + seed % (high - low + 1)
+end
+for round = 1, 300 do
+	local recipes = {}
+	for recipeID = 1, Random(3, 7) do
+		local orange = Random(1, 40)
+		local yellow = orange + Random(5, 25)
+		local green = yellow + Random(3, 20)
+		local cost = Random(500, 5000)
+		recipes[recipeID] = {
+			recipeID = recipeID,
+			thresholds = { orange, yellow, green, green + Random(3, 25) },
+			netCost = cost,
+			reagentCost = cost,
+			skillUps = 1,
+		}
+	end
+	recipes[1].thresholds[1] = 1
+	local share = Random(1, 10) / 100
+	local function Sweep(fewerSteps)
+		return Model.PlanRoute({ skill = 1, target = 70, fewerSteps = fewerSteps, recipes = recipes })
+	end
+	local cheap, fewer = Sweep(0), Sweep(share)
+	equal(fewer.reachedSkill, cheap.reachedSkill, "round " .. round .. " reaches as far")
+	assert(#fewer.segments <= #cheap.segments, "round " .. round .. " never adds a step")
+	assert(
+		fewer.expectedCost <= cheap.expectedCost * (1 + share) + 1e-6,
+		string.format("round %d: %.0f over %.0f at %d%%", round, fewer.expectedCost, cheap.expectedCost, share * 100)
+	)
+end
+
 Client.report("fewer_steps_spec")

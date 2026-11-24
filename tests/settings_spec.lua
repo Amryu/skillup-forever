@@ -361,7 +361,8 @@ local groups = {
 	},
 	{
 		"Prices",
-		"dropdown:priceSource dropdown:craftValue checkbox:valueGathered checkbox:auctionOnly slider:restockCost slider:fewerSteps",
+		"dropdown:priceSource dropdown:craftValue checkbox:valueGathered checkbox:auctionOnly"
+			.. " slider:restockCost slider:fewerSteps",
 	},
 	{
 		"Route and trainer",

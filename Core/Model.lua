@@ -1063,12 +1063,17 @@ local function Planner(snapshot)
 
 	-- What a list of steps costs, twice: as the planner weighs it, which does not chase a profit, and with every
 	-- sale counted, as the route's money shows it. Both carry the fee of every trained recipe the steps still use.
+	-- The steps are budgeted together first, as the route handed out is: the spare crafts a step carries move
+	-- when its shape does, and the allowance is a promise about the cost the player is shown, spares included.
+	-- The craft counts written here belong to the trial alone; Budget counts the chosen steps again.
 	---@param segments SkillUpSegment[]
 	---@return number planned
 	---@return number net
 	local function StepsCost(segments)
 		local trial = { segments = segments, expectedCost = 0 }
 		---@cast trial SkillUpRoute
+		Price(trial)
+		Model.BudgetRoute(trial, Model.ROUTE_CONFIDENCE, snapshot.restockCost)
 		local net = Price(trial)
 		local fees, seen = 0, {}
 		for _, segment in ipairs(segments) do
@@ -1104,13 +1109,15 @@ local function Planner(snapshot)
 			local last = merged[#merged]
 			local recipeID = position == index and neighbour.recipeID or segment.recipeID
 			if last and last.recipeID == recipeID then
-				last.toSkill = segment.toSkill
+				-- The source choices captured for a step are for its own skills: a joined step has none.
+				last.toSkill, last.candidates = segment.toSkill, nil
 			else
 				merged[#merged + 1] = {
 					recipeID = recipeID,
 					fromSkill = segment.fromSkill,
 					toSkill = segment.toSkill,
 					skillUps = byID[recipeID].skillUps,
+					candidates = position ~= index and segment.candidates or nil,
 				}
 			end
 		end
