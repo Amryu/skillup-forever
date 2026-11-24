@@ -575,3 +575,8 @@ L["Click Search in the Professions window to find missing reagents. Without Auct
 L["Keep Auctionator shopping lists"] = "Conservar las listas de compras de Auctionator"
 L["Save lists for tracked routes set to Buy reagents and for recipe searches. Turn this off to stop saving lists and keep using Search."] =
 	"Guarda listas para las rutas seguidas con Comprar reactivos activado y para las búsquedas de recetas. Desactívalo para dejar de guardar listas y seguir usando Buscar."
+L["Fewer route steps"] = "Menos pasos en la ruta" -- mt
+L["Up to %d%% more"] = "Hasta un %d%% más" -- mt
+L["Cheapest route"] = "Ruta más barata" -- mt
+L["How much more than the cheapest route a route may cost when that lets it use fewer recipes. The cheapest route changes recipe wherever another is slightly cheaper; a small allowance means fewer reagents to shop for and fewer steps to craft. Leave it at zero for the cheapest route."] =
+	"Cuánto más que la ruta más barata puede costar una ruta si así usa menos recetas. La ruta más barata cambia de receta en cuanto otra es algo más barata; un pequeño margen supone menos componentes que comprar y menos pasos que fabricar. Déjalo en cero para la ruta más barata." -- mt

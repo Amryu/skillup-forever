@@ -408,6 +408,7 @@ local function Snapshot(profession, target, known)
 		end
 	end
 	snapshot.restockCost = ns.db and ns.db.restockCost or 0
+	snapshot.fewerSteps = (ns.db and ns.db.fewerSteps or 0) / 100
 	return snapshot
 end
 

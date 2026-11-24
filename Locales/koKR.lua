@@ -582,3 +582,8 @@ L["Click Search in the Professions window to find missing reagents. Without Auct
 L["Keep Auctionator shopping lists"] = "Auctionator 쇼핑 목록 유지"
 L["Save lists for tracked routes set to Buy reagents and for recipe searches. Turn this off to stop saving lists and keep using Search."] =
 	"재료 구매로 설정된 추적 경로와 재료 검색의 목록을 저장합니다. 끄면 목록 저장이 중단되며 검색은 계속 사용할 수 있습니다."
+L["Fewer route steps"] = "경로 단계 줄이기" -- mt
+L["Up to %d%% more"] = "최대 %d%% 추가" -- mt
+L["Cheapest route"] = "가장 저렴한 경로" -- mt
+L["How much more than the cheapest route a route may cost when that lets it use fewer recipes. The cheapest route changes recipe wherever another is slightly cheaper; a small allowance means fewer reagents to shop for and fewer steps to craft. Leave it at zero for the cheapest route."] =
+	"제조법을 더 적게 쓰는 경로가 가장 저렴한 경로보다 얼마나 더 비싸도 되는지 정합니다. 가장 저렴한 경로는 다른 제조법이 조금이라도 싸면 바꿉니다. 약간의 여유를 주면 구매할 재료와 제작 단계가 줄어듭니다. 0으로 두면 가장 저렴한 경로를 씁니다." -- mt

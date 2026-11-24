@@ -652,6 +652,8 @@ local function Planner(snapshot)
 	-- the pool; the rest keep the list's static ranking, which a pool can only improve on (to lower a cost).
 	local pooledOf = {}
 	local thresholds, costOf, reagentOf = {}, {}, {}
+	-- [recipe ID] = what learning it costs, for the recipes a training search added.
+	local feeOf = {}
 	local excluded = { unpriced = 0, recipes = {} }
 	-- [recipe][skill]: its rank there, the key false where it gains nothing.
 	local keys, chances = {}, {}
@@ -862,6 +864,7 @@ local function Planner(snapshot)
 			end
 		end
 		byID[recipe.recipeID] = recipe
+		feeOf[recipe.recipeID] = (recipe --[[@as SkillUpService]]).fee
 		thresholds[recipe.recipeID] = recipe.thresholds
 		costOf[recipe.recipeID] = recipe.netCost
 		reagentOf[recipe.recipeID] = recipe.reagentCost
@@ -885,6 +888,9 @@ local function Planner(snapshot)
 		local money = CopyHeld()
 		local stock
 		route.expectedCost = 0
+		-- What the steps cost with every sale counted, as the route's own money shows them: the planner's cost
+		-- above does not chase a profit, so the two differ wherever a recipe sells above its reagents.
+		local net = 0
 		for _, segment in ipairs(route.segments) do
 			local recipeID = segment.recipeID
 			local t, cost, reagentCost = thresholds[recipeID], costOf[recipeID], reagentOf[recipeID]
@@ -917,7 +923,9 @@ local function Planner(snapshot)
 			end
 			route.expectedCost = route.expectedCost
 				+ (Model.RouteStepCost(cost, reagentCost, segment.crafts, Model.CRAFT_TIME_COST) or 0)
+			net = net + (Model.StepCost(cost, reagentCost, segment.crafts, Model.CRAFT_TIME_COST) or 0)
 		end
+		return net
 	end
 
 	-- The route the list takes, optionally with one extra recipe, and each skill it picked at.
@@ -1033,6 +1041,119 @@ local function Planner(snapshot)
 		return count
 	end
 
+	-- Whether a recipe gains skill at every point from one skill to another, so it can take a whole step.
+	---@param recipe SkillUpCandidate
+	---@param fromSkill number
+	---@param toSkill number
+	---@return boolean
+	local function Covers(recipe, fromSkill, toSkill)
+		local skill = fromSkill
+		while skill < toSkill do
+			local chance = Model.Chance(recipe.thresholds, skill)
+			local gain = chance
+				and chance > 0
+				and Model.Gain(recipe.thresholds, skill, recipe.skillUps, toSkill - skill)
+			if not gain or gain <= 0 then
+				return false
+			end
+			skill = skill + gain
+		end
+		return true
+	end
+
+	-- What a list of steps costs, twice: as the planner weighs it, which does not chase a profit, and with every
+	-- sale counted, as the route's money shows it. Both carry the fee of every trained recipe the steps still use.
+	---@param segments SkillUpSegment[]
+	---@return number planned
+	---@return number net
+	local function StepsCost(segments)
+		local trial = { segments = segments, expectedCost = 0 }
+		---@cast trial SkillUpRoute
+		local net = Price(trial)
+		local fees, seen = 0, {}
+		for _, segment in ipairs(segments) do
+			if not seen[segment.recipeID] then
+				seen[segment.recipeID] = true
+				fees = fees + (feeOf[segment.recipeID] or 0)
+			end
+		end
+		return trial.expectedCost + fees, net + fees
+	end
+
+	-- The steps with step `index` handed to its neighbour `into`, nil when that recipe cannot take it. A pinned
+	-- recipe keeps its step, as does one whose cost is not known: neither is the planner's to trade away.
+	---@param segments SkillUpSegment[]
+	---@param index integer
+	---@param into integer
+	---@return SkillUpSegment[]?
+	local function Handed(segments, index, into)
+		local step, neighbour = segments[index], segments[into]
+		local recipe, giving = neighbour and byID[neighbour.recipeID], byID[step.recipeID]
+		if
+			not recipe
+			or not giving
+			or (giving.preference or 0) > 0
+			or recipe.netCost == nil
+			or giving.netCost == nil
+			or not Covers(recipe, step.fromSkill, step.toSkill)
+		then
+			return nil
+		end
+		local merged = {}
+		for position, segment in ipairs(segments) do
+			local last = merged[#merged]
+			local recipeID = position == index and neighbour.recipeID or segment.recipeID
+			if last and last.recipeID == recipeID then
+				last.toSkill = segment.toSkill
+			else
+				merged[#merged + 1] = {
+					recipeID = recipeID,
+					fromSkill = segment.fromSkill,
+					toSkill = segment.toSkill,
+					skillUps = byID[recipeID].skillUps,
+				}
+			end
+		end
+		return merged
+	end
+
+	-- Fewer steps for a little more money: while the route's cost stays within `allowance` of the cheapest one,
+	-- the step that costs least to hand to a neighbouring recipe is handed over. The cheapest route changes recipe
+	-- wherever another is a copper cheaper per point; a player who would rather shop for fewer reagents and craft
+	-- fewer recipes sets what share of the route's cost that is worth. What a hand-over adds is the larger of
+	-- what the planner counts and what the route's money would show, so a profit given up is never free.
+	---@param route SkillUpRoute
+	---@param share number The share of the cheapest route's cost the simpler one may add, 0 for none.
+	local function Simplify(route, share)
+		local segments = route.segments
+		if share <= 0 or #segments < 2 then
+			return
+		end
+		local planned, net = StepsCost(segments)
+		local allowance = math.max(planned, net, 0) * share
+		while #segments > 1 do
+			local best, bestPlanned, bestNet, bestAdded
+			for index = 1, #segments do
+				for _, into in ipairs({ index - 1, index + 1 }) do
+					local trial = Handed(segments, index, into)
+					if trial then
+						local trialPlanned, trialNet = StepsCost(trial)
+						local added = math.max(trialPlanned - planned, trialNet - net, 0)
+						if not bestAdded or added < bestAdded then
+							best, bestPlanned, bestNet, bestAdded = trial, trialPlanned, trialNet, added
+						end
+					end
+				end
+			end
+			if not best or bestAdded > allowance then
+				break
+			end
+			segments, planned, net, allowance = best, bestPlanned, bestNet, allowance - bestAdded
+		end
+		route.segments = segments
+		Price(route)
+	end
+
 	for _, recipe in ipairs(snapshot.recipes) do
 		Add(recipe)
 	end
@@ -1042,7 +1163,9 @@ local function Planner(snapshot)
 		Changes = Changes,
 		Waiting = Waiting,
 		Budget = function()
-			local route = Model.BudgetRoute(Route(), Model.ROUTE_CONFIDENCE, snapshot.restockCost)
+			local picked = Route()
+			Simplify(picked, snapshot.fewerSteps or 0)
+			local route = Model.BudgetRoute(picked, Model.ROUTE_CONFIDENCE, snapshot.restockCost)
 			Price(route)
 			return route
 		end,

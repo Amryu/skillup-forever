@@ -246,6 +246,44 @@ function ns.RegisterSettings()
 				L["What one trip to buy more reagents is worth, in copper, when a run takes more crafts than planned. It is added to that reagent's purchase price only when it happens. Leave it at zero to count no trip."]
 			)
 		)
+
+		-- How much more than the cheapest route a route with fewer steps may cost, as a percent of it. Zero is the
+		-- default: the cheapest route, which changes recipe wherever another is a copper cheaper for a point.
+		local fewer = Settings.RegisterProxySetting(
+			rows,
+			"SkillUpForever_fewerSteps",
+			Settings.VarType.Number,
+			L["Fewer route steps"],
+			ns.DEFAULTS.fewerSteps,
+			function()
+				return ns.db.fewerSteps or 0
+			end,
+			function(value)
+				local percent = math.max(0, math.min(25, math.floor(tonumber(value) or 0)))
+				if ns.db.fewerSteps ~= percent then
+					ns.db.fewerSteps = percent
+					ns.Changed("settings")
+				end
+			end
+		)
+		---@cast fewer SkillUpSetting
+		ownedSettings[#ownedSettings + 1] = fewer
+		local fewerOptions = Secure(Settings.CreateSliderOptions)(0, 25, 1)
+		Secure(fewerOptions.SetLabelFormatter)(
+			fewerOptions,
+			MinimalSliderWithSteppersMixin.Label.Right,
+			Secure(_G.GenerateClosure)(_G.securecallfunction, function(value)
+				return value > 0 and string.format(L["Up to %d%% more"], value) or L["Cheapest route"]
+			end)
+		)
+		Settings.RegisterInitializer(
+			rows,
+			Secure(Settings.CreateSliderInitializer)(
+				fewer,
+				fewerOptions,
+				L["How much more than the cheapest route a route may cost when that lets it use fewer recipes. The cheapest route changes recipe wherever another is slightly cheaper; a small allowance means fewer reagents to shop for and fewer steps to craft. Leave it at zero for the cheapest route."]
+			)
+		)
 	end)
 
 	Section(L["Route and trainer"], function(rows)

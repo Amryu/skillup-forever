@@ -303,6 +303,7 @@
 ---@field gatheredValueSeen boolean
 ---@field auctionOnly boolean
 ---@field restockCost number Copper for one trip to buy more after a shortfall; 0 counts no trip.
+---@field fewerSteps number Percent of the cheapest route's cost a route with fewer steps may add; 0 keeps the cheapest.
 ---@field sortMode 'blizzard'|'skill'|'newest'|'chance'|'cost'|'profit'
 ---@field unlearnedSortMode 'skill'|'newest'
 ---@field showTrainer boolean
@@ -436,6 +437,7 @@ SkillUpForeverDB = nil
 ---@field recipes SkillUpCandidate[]
 ---@field buffs? table<integer, true> Recipes whose product is a buff this character's level can use: they win a tie.
 ---@field restockCost? number Copper for one trip to buy more when a leg falls short; 0 leaves it out.
+---@field fewerSteps? number The share of the cheapest route's cost a route with fewer steps may add; 0 keeps the cheapest.
 ---@field held? table<integer, integer> What the bags and bank hold of every reagent those recipes could use.
 
 ---@class SkillUpSegment

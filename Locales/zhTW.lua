@@ -566,3 +566,8 @@ L["Click Search in the Professions window to find missing reagents. Without Auct
 L["Keep Auctionator shopping lists"] = "保留 Auctionator 購物清單"
 L["Save lists for tracked routes set to Buy reagents and for recipe searches. Turn this off to stop saving lists and keep using Search."] =
 	"為設為購買材料的追蹤路線與配方搜尋儲存購物清單。關閉後不再儲存購物清單，仍可使用搜尋。"
+L["Fewer route steps"] = "減少路線步驟" -- mt
+L["Up to %d%% more"] = "最多高出 %d%%" -- mt
+L["Cheapest route"] = "最便宜的路線" -- mt
+L["How much more than the cheapest route a route may cost when that lets it use fewer recipes. The cheapest route changes recipe wherever another is slightly cheaper; a small allowance means fewer reagents to shop for and fewer steps to craft. Leave it at zero for the cheapest route."] =
+	"當一條路線能用更少的配方時，它最多可以比最便宜的路線貴多少。最便宜的路線只要有別的配方稍微便宜就會更換配方；留一點餘量可以減少要購買的材料和製作步驟。設為零則使用最便宜的路線。" -- mt

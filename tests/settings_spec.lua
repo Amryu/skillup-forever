@@ -257,6 +257,7 @@ local ns = {
 	DEFAULTS = {
 		priceSource = "auctionator",
 		restockCost = 0,
+		fewerSteps = 0,
 		craftValue = "vendor",
 		reagentTooltip = "route",
 		recipeTooltip = "window",
@@ -360,7 +361,7 @@ local groups = {
 	},
 	{
 		"Prices",
-		"dropdown:priceSource dropdown:craftValue checkbox:valueGathered checkbox:auctionOnly slider:restockCost",
+		"dropdown:priceSource dropdown:craftValue checkbox:valueGathered checkbox:auctionOnly slider:restockCost slider:fewerSteps",
 	},
 	{
 		"Route and trainer",
