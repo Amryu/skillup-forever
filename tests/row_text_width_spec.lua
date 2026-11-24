@@ -141,7 +141,15 @@ local function Row(valueWidth)
 		function text.SetText() end
 		function text.SetTextColor() end
 		function text.Show() end
+		-- The client's GetStringWidth is bounded by the width the string carries; GetUnboundedStringWidth is
+		-- the one that answers the string's own width (#979).
 		function text.GetStringWidth(font)
+			if font.width and font.width > 0 then
+				return math.min(font.naturalWidth, font.width)
+			end
+			return font.naturalWidth
+		end
+		function text.GetUnboundedStringWidth(font)
 			return font.naturalWidth
 		end
 		function text.SetWidth(font, width)
@@ -179,5 +187,14 @@ assert(narrow.text.width == 0, "a short value text keeps its natural width, got 
 local huge = decorate(4000)
 assert(huge.Label.width == 40, "the label keeps its 40 floor, got " .. tostring(huge.Label.width))
 assert(huge.text.width <= 304 - 14 - 40, "the widest value text still leaves the label its 40")
+
+-- 4. A recycled row decorated again with the same wide value keeps its cap: the bounded GetStringWidth must not
+-- read the truncated value as short and hand its width back.
+local recycled = Row(400)
+rowCallback(box, recycled, data)
+local firstWidth = recycled.text.width
+rowCallback(box, recycled, data)
+assert(firstWidth and firstWidth <= 304 - 14 - 40, "the recycled row's value is capped, got " .. tostring(firstWidth))
+assert(recycled.text.width == firstWidth, "the cap survives a second decoration, got " .. tostring(recycled.text.width))
 
 print("row_text_width_spec: value text capped, short values auto-width, label floor kept: ok")
