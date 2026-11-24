@@ -26,6 +26,10 @@ local function Font()
 	function font:GetStringWidth()
 		return #self.text * 6
 	end
+	-- The string's own width, which a capped value answers with when GetStringWidth reports the truncated one.
+	function font:GetUnboundedStringWidth()
+		return #self.text * 6
+	end
 	function font:GetWidth()
 		return self.width or 0
 	end

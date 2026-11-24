@@ -50,11 +50,20 @@ end
 ---@param row SkillUpRecipeRow
 ---@param text FontString
 local function FitLabel(row, text)
+	-- The string's own width, not the drawn width: once the value carries a cap, GetStringWidth returns the
+	-- truncated width, and a recycled row would then read as short and have its cap released (#979).
+	local value = text:GetUnboundedStringWidth()
 	local count = row.Count:IsShown() and row.Count:GetStringWidth() or 0
 	local locked = row.LockedIcon:IsShown() and row.LockedIcon:GetWidth() + 2 or 0
-	local available = row:GetWidth() - row.SkillUps:GetWidth() - count - locked - text:GetStringWidth() - 14
+	local available = row:GetWidth() - row.SkillUps:GetWidth() - count - locked - value - 14
 	if row.Label:GetWidth() > available then
 		row.Label:SetWidth(math.max(available, 40))
+	end
+	local maxText = math.max(row:GetWidth() - row.SkillUps:GetWidth() - count - locked - 14 - 40, 40)
+	if value > maxText then
+		text:SetWidth(maxText)
+	else
+		text:SetWidth(0)
 	end
 end
 
